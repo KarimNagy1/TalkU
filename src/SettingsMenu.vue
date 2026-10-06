@@ -12,10 +12,28 @@ defineEmits<{
     "open-monitor": [];
 }>();
 
+interface SupportedGame {
+    id: string;
+    name: string;
+    process_names: string[];
+    steam_app_ids: number[];
+}
+
+interface GameInstallation {
+    found: boolean;
+    source: string;
+    install_dir: string | null;
+    executable: string | null;
+    process_name: string | null;
+}
+
 const games = ref<string[]>([]);
+const supportedGames = ref<SupportedGame[]>([]);
 const addingGame = ref(false);
-const newGame = ref("");
-const inputRef = ref<HTMLInputElement | null>(null);
+const selectedGameId = ref("");
+const detection = ref<GameInstallation | null>(null);
+const detecting = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
 const launchOnStartup = ref(false);
 const autoConnect = ref(false);
 
@@ -30,6 +48,7 @@ onMounted(async () => {
     try {
         autoConnect.value = await invoke<boolean>("get_auto_connect");
         games.value = await invoke<string[]>("get_monitored_games");
+        supportedGames.value = await invoke<SupportedGame[]>("get_supported_games");
     } catch (err) {
         console.error("Failed to load game settings:", err);
     }
@@ -62,27 +81,72 @@ async function toggleAudioCues() {
 
 function showAdd() {
     addingGame.value = true;
-    newGame.value = "";
-    requestAnimationFrame(() => inputRef.value?.focus());
+    detection.value = null;
+    selectedGameId.value = supportedGames.value[0]?.id ?? "";
+    if (selectedGameId.value) detectSelectedGame();
+}
+
+async function detectSelectedGame() {
+    if (!selectedGameId.value) return;
+    detecting.value = true;
+    detection.value = null;
+    try {
+        detection.value = await invoke<GameInstallation>("detect_game_installation", {
+            gameId: selectedGameId.value,
+        });
+    } catch (err) {
+        console.error("Failed to detect game:", err);
+        detection.value = {
+            found: false,
+            source: "Detection failed",
+            install_dir: null,
+            executable: null,
+            process_name: null,
+        };
+    } finally {
+        detecting.value = false;
+    }
+}
+
+function browseForGame() {
+    fileInput.value?.click();
+}
+
+function handleFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const processName = file.name;
+    detection.value = {
+        found: true,
+        source: "Manual selection",
+        install_dir: null,
+        executable: processName,
+        process_name: processName,
+    };
+    input.value = "";
 }
 
 async function confirmAdd() {
-    const game = newGame.value.trim();
-    if (game && !games.value.includes(game)) {
-        try {
-            await invoke("add_monitored_game", { name: game });
-            games.value.push(game);
-        } catch (err) {
-            console.error("Failed to add game:", err);
-        }
+    const processName = detection.value?.process_name?.trim();
+    if (!processName || games.value.some((g) => g.toLowerCase() === processName.toLowerCase())) {
+        return;
     }
-    addingGame.value = false;
-    newGame.value = "";
+    try {
+        await invoke("add_monitored_game", { name: processName });
+        games.value.push(processName);
+        addingGame.value = false;
+        selectedGameId.value = "";
+        detection.value = null;
+    } catch (err) {
+        console.error("Failed to add game:", err);
+    }
 }
 
 function cancelAdd() {
     addingGame.value = false;
-    newGame.value = "";
+    selectedGameId.value = "";
+    detection.value = null;
 }
 
 async function removeGame(game: string) {
@@ -179,32 +243,73 @@ async function removeGame(game: string) {
                         </button>
                     </div>
 
-                    <div v-if="addingGame" class="game-add-input-row">
+                    <div v-if="addingGame" class="game-add-panel">
                         <input
-                            ref="inputRef"
-                            v-model="newGame"
-                            class="game-add-input"
-                            type="text"
-                            placeholder="game.exe"
-                            @keydown.enter.prevent="confirmAdd"
-                            @keydown.esc.prevent="cancelAdd"
+                            ref="fileInput"
+                            type="file"
+                            accept=".exe"
+                            class="game-file-input"
+                            @change="handleFileSelected"
                         />
-                        <button
-                            class="game-add-confirm"
-                            type="button"
-                            title="Add"
-                            @click="confirmAdd"
+                        <select
+                            v-model="selectedGameId"
+                            class="game-add-select"
+                            @change="detectSelectedGame"
                         >
-                            <Check class="h-4" />
-                        </button>
-                        <button
-                            class="game-add-cancel"
-                            type="button"
-                            title="Cancel"
-                            @click="cancelAdd"
-                        >
-                            <X class="h-4" />
-                        </button>
+                            <option
+                                v-for="game in supportedGames"
+                                :key="game.id"
+                                :value="game.id"
+                            >
+                                {{ game.name }}
+                            </option>
+                        </select>
+
+                        <div class="game-detection">
+                            <div v-if="detecting" class="game-detection-status">
+                                Detecting Steam installation…
+                            </div>
+                            <template v-else-if="detection?.found">
+                                <div class="game-detection-status success">
+                                    <Check class="h-3.5" />
+                                    {{ detection.source }} detected
+                                </div>
+                                <div class="game-detection-path" :title="detection.executable ?? undefined">
+                                    {{ detection.executable }}
+                                </div>
+                            </template>
+                            <div v-else class="game-detection-status">
+                                {{ detection?.source ?? "No installation detected" }}
+                            </div>
+                        </div>
+
+                        <div class="game-add-actions">
+                            <button
+                                class="game-browse-btn"
+                                type="button"
+                                @click="browseForGame"
+                            >
+                                Browse for EXE
+                            </button>
+                            <button
+                                class="game-add-confirm"
+                                type="button"
+                                title="Add"
+                                :disabled="!detection?.process_name"
+                                @click="confirmAdd"
+                            >
+                                <Check class="h-4" />
+                                Add
+                            </button>
+                            <button
+                                class="game-add-cancel"
+                                type="button"
+                                title="Cancel"
+                                @click="cancelAdd"
+                            >
+                                <X class="h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     <div
@@ -506,6 +611,82 @@ async function removeGame(game: string) {
     justify-content: center;
     padding: 8px 10px 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.game-file-input {
+    display: none;
+}
+
+.game-add-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.game-add-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.20);
+    color: inherit;
+}
+
+.game-detection {
+    min-width: 0;
+}
+
+.game-detection-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    opacity: 0.72;
+}
+
+.game-detection-status.success {
+    opacity: 0.95;
+}
+
+.game-detection-path {
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    opacity: 0.55;
+}
+
+.game-add-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.game-browse-btn {
+    flex: 1;
+    padding: 7px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.game-add-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.game-add-confirm:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .game-add-input-row {

@@ -608,6 +608,26 @@ fn get_monitored_games(settings: tauri::State<'_, SharedSettings>) -> Result<Vec
         .unwrap_or_default())
 }
 
+/// A game that TalkU can monitor. The process names are intentionally kept
+/// separate from the friendly name because Windows process names are what the
+/// background watcher actually sees.
+#[derive(serde::Serialize, Clone)]
+struct SupportedGame {
+    id: String,
+    name: String,
+    process_names: Vec<String>,
+    steam_app_ids: Vec<u32>,
+}
+
+#[derive(serde::Serialize)]
+struct GameInstallation {
+    found: bool,
+    source: String,
+    install_dir: Option<String>,
+    executable: Option<String>,
+    process_name: Option<String>,
+}
+
 #[tauri::command]
 fn get_audio_cues(settings: tauri::State<'_, SharedSettings>) -> Result<bool, String> {
     // Unset (None) means the user never touched the toggle -> cues are on.
@@ -666,6 +686,143 @@ fn remove_monitored_game(
         s.save(&path);
     }
     Ok(())
+}
+
+fn supported_games() -> Vec<SupportedGame> {
+    vec![
+        SupportedGame { id: "helldivers2".into(), name: "Helldivers 2".into(), process_names: vec!["helldivers2.exe".into()], steam_app_ids: vec![553850] },
+        SupportedGame { id: "gtav".into(), name: "GTA V".into(), process_names: vec!["GTA5.exe".into(), "GTA5_Enhanced.exe".into()], steam_app_ids: vec![271590, 3240220] },
+        SupportedGame { id: "fallout76".into(), name: "Fallout 76".into(), process_names: vec!["Fallout76.exe".into()], steam_app_ids: vec![1151340] },
+        SupportedGame { id: "valorant".into(), name: "Valorant".into(), process_names: vec!["VALORANT-Win64-Shipping.exe".into()], steam_app_ids: vec![] },
+        SupportedGame { id: "overwatch2".into(), name: "Overwatch 2".into(), process_names: vec!["Overwatch.exe".into(), "Overwatch Launcher.exe".into()], steam_app_ids: vec![2357570] },
+        SupportedGame { id: "league".into(), name: "League Of Legends".into(), process_names: vec!["LeagueClient.exe".into(), "League of Legends.exe".into()], steam_app_ids: vec![] },
+        SupportedGame { id: "foxhole".into(), name: "Foxhole".into(), process_names: vec!["FoxholeGame.exe".into()], steam_app_ids: vec![505460] },
+        SupportedGame { id: "readyornot".into(), name: "Ready or Not".into(), process_names: vec!["ReadyOrNot-Win64-Shipping.exe".into()], steam_app_ids: vec![1144200] },
+        SupportedGame { id: "huntshowdown".into(), name: "The Hunt: Showdown".into(), process_names: vec!["HuntGame.exe".into()], steam_app_ids: vec![594650] },
+        SupportedGame { id: "thecyclefrontier".into(), name: "The Cycle: Frontier".into(), process_names: vec!["TheCycleFrontier.exe".into()], steam_app_ids: vec![868270] },
+        SupportedGame { id: "pubg".into(), name: "PUBG (Steam)".into(), process_names: vec!["TslGame.exe".into()], steam_app_ids: vec![578080] },
+        SupportedGame { id: "hellletloose".into(), name: "Hell Let Loose".into(), process_names: vec!["HLL-Win64-Shipping.exe".into()], steam_app_ids: vec![686810] },
+        SupportedGame { id: "paladins".into(), name: "Paladins".into(), process_names: vec!["Paladins.exe".into()], steam_app_ids: vec![444090] },
+        SupportedGame { id: "smite".into(), name: "Smite".into(), process_names: vec!["Smite.exe".into(), "SmiteEAC.exe".into()], steam_app_ids: vec![386360] },
+        SupportedGame { id: "outlasttrials".into(), name: "The Outlast Trials".into(), process_names: vec!["OPP-Win64-Shipping.exe".into()], steam_app_ids: vec![1304930] },
+    ]
+}
+
+#[tauri::command]
+fn get_supported_games() -> Vec<SupportedGame> {
+    supported_games()
+}
+
+#[cfg(windows)]
+fn steam_install_paths() -> Vec<std::path::PathBuf> {
+    use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+
+    let mut roots = Vec::new();
+    if let Ok(key) = RegKey::predef(HKEY_CURRENT_USER).open_subkey("Software\\Valve\\Steam") {
+        for value_name in ["InstallPath", "SteamPath"] {
+            if let Ok(value) = key.get_value::<String, _>(value_name) {
+                roots.push(std::path::PathBuf::from(value));
+            }
+        }
+    }
+
+    for env in ["ProgramFiles(x86)", "ProgramFiles"] {
+        if let Ok(base) = std::env::var(env) {
+            roots.push(std::path::PathBuf::from(base).join("Steam"));
+        }
+    }
+
+    roots.sort();
+    roots.dedup();
+    roots
+}
+
+#[cfg(not(windows))]
+fn steam_install_paths() -> Vec<std::path::PathBuf> { Vec::new() }
+
+fn parse_vdf_path_line(line: &str) -> Option<std::path::PathBuf> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("\"path\"") { return None; }
+    let rest = trimmed.strip_prefix("\"path\"")?.trim_start();
+    let rest = rest.strip_prefix('"')?;
+    let end = rest.find('"')?;
+    let raw = &rest[..end];
+    let value = raw.replace("\\\\", "\\").replace("\\\"", "\"");
+    Some(std::path::PathBuf::from(value))
+}
+
+fn steam_library_paths() -> Vec<std::path::PathBuf> {
+    let mut libraries = Vec::new();
+    for steam in steam_install_paths() {
+        libraries.push(steam.clone());
+        let vdf = steam.join("steamapps").join("libraryfolders.vdf");
+        if let Ok(content) = fs::read_to_string(vdf) {
+            for line in content.lines() {
+                if let Some(path) = parse_vdf_path_line(line) { libraries.push(path); }
+            }
+        }
+    }
+    libraries.sort();
+    libraries.dedup();
+    libraries
+}
+
+fn find_executable(root: &std::path::Path, candidates: &[String]) -> Option<std::path::PathBuf> {
+    let wanted: Vec<String> = candidates.iter().map(|x| x.to_lowercase()).collect();
+    let mut stack = vec![root.to_path_buf()];
+    let mut visited = 0usize;
+    while let Some(dir) = stack.pop() {
+        if visited > 5000 { break; }
+        visited += 1;
+        let entries = match fs::read_dir(&dir) { Ok(e) => e, Err(_) => continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                if !matches!(name.as_str(), "logs" | "redist") {
+                    stack.push(path);
+                }
+            } else if path.is_file() {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    if wanted.iter().any(|candidate| candidate == &name.to_lowercase()) { return Some(path); }
+                }
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn detect_game_installation(game_id: String) -> Result<GameInstallation, String> {
+    let game = supported_games().into_iter().find(|g| g.id == game_id)
+        .ok_or_else(|| "unsupported game".to_string())?;
+
+    for library in steam_library_paths() {
+        let steamapps = library.join("steamapps");
+        for app_id in &game.steam_app_ids {
+            let manifest = steamapps.join(format!("appmanifest_{app_id}.acf"));
+            if !manifest.exists() { continue; }
+            let content = fs::read_to_string(&manifest).map_err(|e| format!("failed to read Steam manifest: {e}"))?;
+            let install_dir = content.lines()
+                .find_map(parse_vdf_path_line); // fallback if the manifest uses a path key
+            let folder = content.lines().find_map(|line| {
+                let t = line.trim();
+                if t.starts_with("\"installdir\"") {
+                    let rest = t.strip_prefix("\"installdir\"")?.trim_start().strip_prefix('"')?;
+                    let end = rest.find('"')?;
+                    Some(rest[..end].replace("\\\\", "\\").replace("\\\"", "\""))
+                } else { None }
+            });
+            let dir = folder.map(|f| steamapps.join("common").join(f)).or_else(|| install_dir.map(|p| steamapps.join("common").join(p)));
+            if let Some(dir) = dir {
+                if let Some(exe) = find_executable(&dir, &game.process_names) {
+                    return Ok(GameInstallation { found: true, source: "Steam".into(), install_dir: Some(dir.display().to_string()), executable: Some(exe.display().to_string()), process_name: exe.file_name().and_then(|n| n.to_str()).map(str::to_string) });
+                }
+            }
+        }
+    }
+
+    Ok(GameInstallation { found: false, source: if game.steam_app_ids.is_empty() { "Not a Steam game".into() } else { "Steam installation not found".into() }, install_dir: None, executable: None, process_name: None })
 }
 
 /// Long-running background task that watches for monitored game processes and
@@ -759,6 +916,8 @@ pub fn run() {
             get_auto_connect,
             set_auto_connect,
             get_monitored_games,
+            get_supported_games,
+            detect_game_installation,
             add_monitored_game,
             remove_monitored_game,
             get_audio_cues,
