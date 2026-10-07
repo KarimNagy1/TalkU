@@ -17,6 +17,13 @@ interface SupportedGame {
     name: string;
     process_names: string[];
     steam_app_ids: number[];
+    epic_names: string[];
+    xbox_names: string[];
+}
+
+interface MonitoredGame {
+    name: string;
+    process_name: string;
 }
 
 interface GameInstallation {
@@ -27,7 +34,7 @@ interface GameInstallation {
     process_name: string | null;
 }
 
-const games = ref<string[]>([]);
+const games = ref<MonitoredGame[]>([]);
 const supportedGames = ref<SupportedGame[]>([]);
 const addingGame = ref(false);
 const selectedGameId = ref("");
@@ -47,7 +54,7 @@ onMounted(async () => {
     }
     try {
         autoConnect.value = await invoke<boolean>("get_auto_connect");
-        games.value = await invoke<string[]>("get_monitored_games");
+        games.value = await invoke<MonitoredGame[]>("get_monitored_games");
         supportedGames.value = await invoke<SupportedGame[]>("get_supported_games");
     } catch (err) {
         console.error("Failed to load game settings:", err);
@@ -116,6 +123,7 @@ function handleFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    selectedGameId.value = "";
     const processName = file.name;
     detection.value = {
         found: true,
@@ -129,12 +137,14 @@ function handleFileSelected(event: Event) {
 
 async function confirmAdd() {
     const processName = detection.value?.process_name?.trim();
-    if (!processName || games.value.some((g) => g.toLowerCase() === processName.toLowerCase())) {
+    if (!processName || games.value.some((g) => g.process_name.toLowerCase() === processName.toLowerCase())) {
         return;
     }
+    const selected = supportedGames.value.find((g) => g.id === selectedGameId.value);
+    const displayName = selected?.name ?? processName;
     try {
-        await invoke("add_monitored_game", { name: processName });
-        games.value.push(processName);
+        await invoke("add_monitored_game", { name: processName, displayName });
+        games.value.push({ name: displayName, process_name: processName });
         addingGame.value = false;
         selectedGameId.value = "";
         detection.value = null;
@@ -149,10 +159,10 @@ function cancelAdd() {
     detection.value = null;
 }
 
-async function removeGame(game: string) {
+async function removeGame(game: MonitoredGame) {
     try {
-        await invoke("remove_monitored_game", { name: game });
-        games.value = games.value.filter((g) => g !== game);
+        await invoke("remove_monitored_game", { name: game.process_name });
+        games.value = games.value.filter((g) => g.process_name !== game.process_name);
     } catch (err) {
         console.error("Failed to remove game:", err);
     }
@@ -225,13 +235,13 @@ async function removeGame(game: string) {
                 <div v-if="autoConnect" class="games-box">
                     <div
                         v-for="game in games"
-                        :key="game"
+                        :key="game.process_name"
                         class="game-row"
                     >
                         <span class="game-row-icon"
                             ><Gamepad2 class="h-3.5" /></span
                         >
-                        <span class="game-row-name">{{ game }}</span>
+                        <span class="game-row-name" :title="game.process_name">{{ game.name }}</span>
                         <span class="menu-item-value">On</span>
                         <button
                             class="game-row-remove"
@@ -267,7 +277,7 @@ async function removeGame(game: string) {
 
                         <div class="game-detection">
                             <div v-if="detecting" class="game-detection-status">
-                                Detecting Steam installation…
+                                Checking Steam, Epic Games and Xbox / Game Pass…
                             </div>
                             <template v-else-if="detection?.found">
                                 <div class="game-detection-status success">
@@ -630,10 +640,24 @@ async function removeGame(game: string) {
 .game-add-select {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(35, 164, 70, 0.55);
     border-radius: 7px;
-    background: rgba(0, 0, 0, 0.20);
-    color: inherit;
+    background: rgba(35, 164, 70, 0.16);
+    color: #eaffef;
+    font-weight: 500;
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+.game-add-select:focus {
+    outline: none;
+    border-color: #23a446;
+    box-shadow: 0 0 0 2px rgba(35, 164, 70, 0.15);
+}
+
+.game-add-select option {
+    background: #151918;
+    color: #eaffef;
 }
 
 .game-detection {
@@ -669,12 +693,12 @@ async function removeGame(game: string) {
 
 .game-browse-btn {
     flex: 1;
-    padding: 7px 9px;
+    padding: 5px 8px;
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 7px;
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
-    font-size: 11px;
+    font-size: 10.5px;
     cursor: pointer;
 }
 
@@ -719,8 +743,8 @@ async function removeGame(game: string) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.04);
