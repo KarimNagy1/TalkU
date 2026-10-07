@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/steam-game-detection
+      - feature/game-store-detection-v3.0.1
 
 jobs:
   build-windows:
