@@ -1,7 +1,7 @@
 mod config;
 mod settings;
 
-use std::{fs, os::windows::process::CommandExt};
+use std::fs;
 
 use settings::SharedSettings;
 
@@ -661,7 +661,8 @@ fn add_monitored_game(name: String, display_name: String, app: tauri::AppHandle,
     if let Ok(mut s) = settings.lock() {
         while s.monitored_game_names.len() < s.monitored_games.len() {
             let i = s.monitored_game_names.len();
-            s.monitored_game_names.push(s.monitored_games[i].clone());
+            let fallback_name = s.monitored_games[i].clone();
+            s.monitored_game_names.push(fallback_name);
         }
         if !s.monitored_games.iter().any(|g| settings::normalize_game(g) == normalized) {
             s.monitored_games.push(name.to_string());
@@ -742,7 +743,7 @@ fn epic_manifest_roots()->Vec<std::path::PathBuf>{match std::env::var("PROGRAMDA
 fn epic_manifest_roots()->Vec<std::path::PathBuf>{Vec::new()}
 
 fn detect_epic_installation(game:&SupportedGame)->Option<GameInstallation>{
-    if game.epic_names.is_empty(){return None;}for root in epic_manifest_roots(){let entries=fs::read_dir(&root).ok()?;for entry in entries.flatten(){let path=entry.path();if path.extension().and_then(|x|x.to_str()).map(|x|x.eq_ignore_ascii_case("item"))!=Some(true){continue;}let content=fs::read_to_string(&path).ok()?;let m:serde_json::Value=serde_json::from_str(&content).ok()?;let display=m.get("DisplayName").or_else(||m.get("AppName")).and_then(|x|x.as_str()).unwrap_or("").to_lowercase();let launch=m.get("LaunchExecutable").and_then(|x|x.as_str()).unwrap_or("").to_lowercase();let match_name=game.epic_names.iter().any(|x|x.to_lowercase()==display);let match_exe=game.process_names.iter().any(|x|launch.ends_with(&x.to_lowercase()));if !match_name&&!match_exe{continue;}let install=std::path::PathBuf::from(m.get("InstallLocation").and_then(|x|x.as_str())?);if let Some(l)=m.get("LaunchExecutable").and_then(|x|x.as_str()){let exe=install.join(l.replace('/','\\'));if exe.is_file(){let pn=exe.file_name().and_then(|x|x.to_str()).map(str::to_string);return Some(GameInstallation{found:true,source:"Epic Games".into(),install_dir:Some(install.display().to_string()),executable:Some(exe.display().to_string()),process_name:pn});}}if let Some(exe)=find_executable(&install,&game.process_names){let pn=exe.file_name().and_then(|x|x.to_str()).map(str::to_string);return Some(GameInstallation{found:true,source:"Epic Games".into(),install_dir:Some(install.display().to_string()),executable:Some(exe.display().to_string()),process_name:pn});}}}None
+    if game.epic_names.is_empty(){return None;}for root in epic_manifest_roots(){let entries=fs::read_dir(&root).ok()?;for entry in entries.flatten(){let path=entry.path();if path.extension().and_then(|x|x.to_str()).map(|x|x.eq_ignore_ascii_case("item"))!=Some(true){continue;}let content=fs::read_to_string(&path).ok()?;let m:serde_json::Value=serde_json::from_str(&content).ok()?;let display=m.get("DisplayName").or_else(||m.get("AppName")).and_then(|x|x.as_str()).unwrap_or("").to_lowercase();let launch=m.get("LaunchExecutable").and_then(|x|x.as_str()).unwrap_or("").to_lowercase();let match_name=game.epic_names.iter().any(|x|x.to_lowercase()==display);let match_exe=game.process_names.iter().any(|x|launch.ends_with(&x.to_lowercase()));if !match_name&&!match_exe{continue;}let install=std::path::PathBuf::from(m.get("InstallLocation").and_then(|x|x.as_str())?);if let Some(l)=m.get("LaunchExecutable").and_then(|x|x.as_str()){let exe = install.join(l.replace("/", "\\"));if exe.is_file(){let pn=exe.file_name().and_then(|x|x.to_str()).map(str::to_string);return Some(GameInstallation{found:true,source:"Epic Games".into(),install_dir:Some(install.display().to_string()),executable:Some(exe.display().to_string()),process_name:pn});}}if let Some(exe)=find_executable(&install,&game.process_names){let pn=exe.file_name().and_then(|x|x.to_str()).map(str::to_string);return Some(GameInstallation{found:true,source:"Epic Games".into(),install_dir:Some(install.display().to_string()),executable:Some(exe.display().to_string()),process_name:pn});}}}None
 }
 
 #[cfg(windows)]
