@@ -669,11 +669,13 @@ async function removeGame(game: MonitoredGame) {
     align-items: center;
     gap: 5px;
     font-size: 11px;
-    opacity: 0.72;
+    opacity: 0.95;
+    color: #d9e6dc;
 }
 
 .game-detection-status.success {
-    opacity: 0.95;
+    opacity: 1;
+    color: #7ee787;
 }
 
 .game-detection-path {
@@ -682,7 +684,8 @@ async function removeGame(game: MonitoredGame) {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 10px;
-    opacity: 0.55;
+    opacity: 0.85;
+    color: #b8c7bc;
 }
 
 .game-add-actions {
