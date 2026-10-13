@@ -38,8 +38,11 @@ const games = ref<MonitoredGame[]>([]);
 const supportedGames = ref<SupportedGame[]>([]);
 const addingGame = ref(false);
 const selectedGameId = ref("");
+const customGameName = ref("");
+const customDisplayName = ref("");
 const detection = ref<GameInstallation | null>(null);
 const detecting = ref(false);
+let detectionRequestId = 0;
 const fileInput = ref<HTMLInputElement | null>(null);
 const launchOnStartup = ref(false);
 const autoConnect = ref(false);
@@ -87,21 +90,48 @@ async function toggleAudioCues() {
 }
 
 function showAdd() {
+    detectionRequestId++;
     addingGame.value = true;
     detection.value = null;
+    detecting.value = false;
+    customGameName.value = "";
+    customDisplayName.value = "";
     selectedGameId.value = supportedGames.value[0]?.id ?? "";
     if (selectedGameId.value) detectSelectedGame();
 }
 
+function onSelectedGameChange() {
+    if (selectedGameId.value === "__other__") {
+        detectionRequestId++;
+        detecting.value = false;
+        detection.value = null;
+        customGameName.value = "";
+        customDisplayName.value = "";
+        return;
+    }
+
+    customGameName.value = "";
+    customDisplayName.value = "";
+    detectSelectedGame();
+}
+
 async function detectSelectedGame() {
-    if (!selectedGameId.value) return;
+    const requestId = ++detectionRequestId;
+    if (!selectedGameId.value || selectedGameId.value === "__other__") {
+        detecting.value = false;
+        return;
+    }
     detecting.value = true;
     detection.value = null;
+
     try {
-        detection.value = await invoke<GameInstallation>("detect_game_installation", {
+        const result = await invoke<GameInstallation>("detect_game_installation", {
             gameId: selectedGameId.value,
         });
+        if (requestId !== detectionRequestId) return;
+        detection.value = result;
     } catch (err) {
+        if (requestId !== detectionRequestId) return;
         console.error("Failed to detect game:", err);
         detection.value = {
             found: false,
@@ -111,7 +141,9 @@ async function detectSelectedGame() {
             process_name: null,
         };
     } finally {
-        detecting.value = false;
+        if (requestId === detectionRequestId) {
+            detecting.value = false;
+        }
     }
 }
 
@@ -123,8 +155,12 @@ function handleFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    selectedGameId.value = "";
+    selectedGameId.value = "__other__";
     const processName = file.name;
+    customGameName.value = processName;
+    if (!customDisplayName.value.trim()) {
+        customDisplayName.value = processName.replace(/\.exe$/i, "");
+    }
     detection.value = {
         found: true,
         source: "Manual selection",
@@ -137,16 +173,29 @@ function handleFileSelected(event: Event) {
 
 async function confirmAdd() {
     const processName = detection.value?.process_name?.trim();
-    if (!processName || games.value.some((g) => g.process_name.toLowerCase() === processName.toLowerCase())) {
+    if (
+        !processName ||
+        games.value.some(
+            (g) => g.process_name.toLowerCase() === processName.toLowerCase(),
+        )
+    ) {
         return;
     }
+
     const selected = supportedGames.value.find((g) => g.id === selectedGameId.value);
-    const displayName = selected?.name ?? processName;
+    const defaultCustomName = processName.replace(/\.exe$/i, "");
+    const displayName =
+        selectedGameId.value === "__other__"
+            ? customDisplayName.value.trim() || defaultCustomName
+            : selected?.name ?? processName;
+
     try {
         await invoke("add_monitored_game", { name: processName, displayName });
         games.value.push({ name: displayName, process_name: processName });
         addingGame.value = false;
         selectedGameId.value = "";
+        customGameName.value = "";
+        customDisplayName.value = "";
         detection.value = null;
     } catch (err) {
         console.error("Failed to add game:", err);
@@ -154,9 +203,13 @@ async function confirmAdd() {
 }
 
 function cancelAdd() {
+    detectionRequestId++;
     addingGame.value = false;
     selectedGameId.value = "";
+    customGameName.value = "";
+    customDisplayName.value = "";
     detection.value = null;
+    detecting.value = false;
 }
 
 async function removeGame(game: MonitoredGame) {
@@ -264,7 +317,7 @@ async function removeGame(game: MonitoredGame) {
                         <select
                             v-model="selectedGameId"
                             class="game-add-select"
-                            @change="detectSelectedGame"
+                            @change="onSelectedGameChange"
                         >
                             <option
                                 v-for="game in supportedGames"
@@ -273,7 +326,25 @@ async function removeGame(game: MonitoredGame) {
                             >
                                 {{ game.name }}
                             </option>
+                            <option value="__other__">Other — Choose an EXE</option>
                         </select>
+
+                        <div v-if="selectedGameId === '__other__'" class="game-custom-fields">
+                            <label class="game-custom-label" for="custom-game-name">
+                                Display name
+                            </label>
+                            <input
+                                id="custom-game-name"
+                                v-model="customDisplayName"
+                                class="game-custom-input"
+                                type="text"
+                                placeholder="Enter a friendly game name"
+                                maxlength="80"
+                            />
+                            <div class="game-custom-exe">
+                                {{ customGameName || "Choose an executable using Browse for EXE" }}
+                            </div>
+                        </div>
 
                         <div class="game-detection">
                             <div v-if="detecting" class="game-detection-status">
@@ -289,7 +360,11 @@ async function removeGame(game: MonitoredGame) {
                                 </div>
                             </template>
                             <div v-else class="game-detection-status">
-                                {{ detection?.source ?? "No installation detected" }}
+                                {{
+                                    selectedGameId === "__other__"
+                                        ? "Browse for the executable you want TalkU to monitor"
+                                        : detection?.source ?? "No installation detected"
+                                }}
                             </div>
                         </div>
 
@@ -660,6 +735,49 @@ async function removeGame(game: MonitoredGame) {
     color: #eaffef;
 }
 
+.game-custom-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.game-custom-label {
+    color: #cbd5e1;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.game-custom-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border: 1px solid rgba(96, 165, 250, 0.55);
+    border-radius: 7px;
+    background: rgba(37, 99, 235, 0.10);
+    color: #f3f4f6;
+    font-size: 11.5px;
+    font-family: "Roboto", sans-serif;
+}
+
+.game-custom-input::placeholder {
+    color: #9ca3af;
+}
+
+.game-custom-input:focus {
+    outline: none;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+}
+
+.game-custom-exe {
+    overflow: hidden;
+    color: #9ca3af;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .game-detection {
     min-width: 0;
 }
@@ -696,13 +814,23 @@ async function removeGame(game: MonitoredGame) {
 
 .game-browse-btn {
     flex: 1;
-    padding: 5px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    min-height: 30px;
+    padding: 6px 9px;
+    border: 1px solid rgba(96, 165, 250, 0.7);
     border-radius: 7px;
-    background: rgba(255, 255, 255, 0.04);
-    color: inherit;
+    background: #1d4ed8;
+    color: #ffffff;
     font-size: 10.5px;
+    font-weight: 600;
     cursor: pointer;
+    transition:
+        background-color 0.14s ease,
+        border-color 0.14s ease;
+}
+
+.game-browse-btn:hover {
+    background: #2563eb;
+    border-color: #93c5fd;
 }
 
 .game-add-confirm {
@@ -760,12 +888,20 @@ async function removeGame(game: MonitoredGame) {
 }
 
 .game-add-confirm {
-    color: #23a446;
+    border-color: #15803d;
+    background: #15803d;
+    color: #ffffff;
 }
 
-.game-add-confirm:hover {
-    background: rgba(35, 164, 70, 0.18);
-    border-color: rgba(35, 164, 70, 0.6);
+.game-add-confirm:hover:not(:disabled) {
+    border-color: #22c55e;
+    background: #16a34a;
+}
+
+.game-add-confirm:disabled {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #9ca3af;
 }
 
 .game-add-cancel:hover {
