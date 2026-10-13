@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/game-store-detection-v3.0.1
+      - experiment/general-voip-routing
 
 jobs:
   build-windows:
