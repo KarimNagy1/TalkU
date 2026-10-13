@@ -171,6 +171,26 @@ function handleFileSelected(event: Event) {
     input.value = "";
 }
 
+function handleManualProcessNameChange() {
+    const processName = customGameName.value.trim();
+
+    if (!processName) {
+        detection.value = null;
+        return;
+    }
+
+    detection.value = {
+        found: true,
+        source: "Manual entry",
+        install_dir: null,
+        executable: processName,
+        process_name: processName,
+    };
+    if (!customDisplayName.value.trim()) {
+        customDisplayName.value = processName.replace(/\.exe$/i, "");
+    }
+}
+
 async function confirmAdd() {
     const processName = detection.value?.process_name?.trim();
     if (
@@ -326,7 +346,7 @@ async function removeGame(game: MonitoredGame) {
                             >
                                 {{ game.name }}
                             </option>
-                            <option value="__other__">Other — Choose an EXE</option>
+                            <option value="__other__">Other — Enter process name or browse</option>
                         </select>
 
                         <div v-if="selectedGameId === '__other__'" class="game-custom-fields">
@@ -341,9 +361,18 @@ async function removeGame(game: MonitoredGame) {
                                 placeholder="Enter a friendly game name"
                                 maxlength="80"
                             />
-                            <div class="game-custom-exe">
-                                {{ customGameName || "Choose an executable using Browse for EXE" }}
-                            </div>
+                            <label class="game-custom-label" for="custom-game-process">
+                                Process name (use if Browse fails)
+                            </label>
+                            <input
+                                id="custom-game-process"
+                                v-model="customGameName"
+                                class="game-custom-input"
+                                type="text"
+                                placeholder="Enter process name (e.g. game.exe)"
+                                spellcheck="false"
+                                @input="handleManualProcessNameChange"
+                            />
                         </div>
 
                         <div class="game-detection">
@@ -362,7 +391,7 @@ async function removeGame(game: MonitoredGame) {
                             <div v-else class="game-detection-status">
                                 {{
                                     selectedGameId === "__other__"
-                                        ? "Browse for the executable you want TalkU to monitor"
+                                        ? "Enter the game process name or use Browse for EXE"
                                         : detection?.source ?? "No installation detected"
                                 }}
                             </div>
