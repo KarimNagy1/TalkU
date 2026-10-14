@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TalkU Community Fund</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#182230;background:#f4f6f8;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:#176b48;color:#fff;font-weight:650}button.secondary{background:#e7ecef;color:#20312a}button.danger{background:#a62e36}.wrap{max-width:1050px;margin:auto;padding:22px}.header,.panel,.metric{background:#fff;border:1px solid #e1e6e9;border-radius:18px;padding:18px}.header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:13px;background:#e2f4e9;display:grid;place-items:center;font-size:24px}.muted{color:#66737d}.tag{display:inline-block;background:#fff0c2;color:#795500;border-radius:999px;padding:5px 10px;font-size:.78rem;font-weight:700}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.toolbar button{background:#e5eaed;color:#34434b}.toolbar button.active{background:#176b48;color:#fff}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}.metric{padding:16px}.metric small{display:block;color:#66737d;margin-bottom:9px}.metric strong{font-size:1.35rem;overflow-wrap:anywhere}.good{color:#16814f}.progress{height:9px;background:#e6ece8;border-radius:999px;overflow:hidden;margin:12px 0}.progress span{display:block;height:100%;background:#1c995c;width:0}.panel{margin:14px 0}.panel h2{margin:0 0 12px;font-size:1.15rem}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}label{font-size:.9rem;font-weight:650}input,select,textarea{border:1px solid #ccd5db;border-radius:9px;padding:10px;background:#fff;color:#182230;width:100%;min-width:0}input[type=checkbox]{width:auto;accent-color:#176b48} .checkline{display:flex;align-items:flex-start;gap:9px;font-weight:500}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.transaction{border-top:1px solid #e6eaed;padding:13px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.transaction:first-of-type{border-top:0}.tx-main{min-width:0}.tx-main strong{display:block;overflow-wrap:anywhere}.tx-meta{font-size:.84rem;color:#66737d;margin-top:4px}.amount{white-space:nowrap;font-weight:750}.amount.in{color:#16814f}.amount.out{color:#34434b}.hidden{display:none!important}.note{background:#fff8e6;border:1px solid #f1dfab;border-radius:12px;padding:12px;font-size:.9rem;color:#6b520d}.footer{font-size:.82rem;color:#66737d;text-align:center;padding:18px}.empty{padding:20px;text-align:center;color:#66737d}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.pill{border:1px solid #dce3e7;padding:4px 8px;border-radius:999px;font-size:.78rem;color:#58656d}
+[dir=rtl] body{text-align:right}[dir=rtl] .brand{flex-direction:row}[dir=rtl] .transaction{flex-direction:row}[dir=rtl] .checkline{flex-direction:row}[dir=rtl] .toolbar{flex-direction:row}[dir=rtl] .actions{flex-direction:row}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:12px}.header,.panel{padding:14px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.metric strong{font-size:1.15rem}}
+@media(max-width:390px){.grid{grid-template-columns:1fr 1fr}.transaction{gap:8px}.amount{font-size:.9rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="header">
+    <div class="brand"><div class="logo">♥</div><div><h1 id="appTitle" style="margin:0;font-size:1.3rem">TalkU Community Fund</h1><div id="subtitle" class="muted">Donations and spending</div></div></div>
+    <div class="row"><span class="tag" id="demoTag">LOCAL PROTOTYPE</span><button id="langBtn" class="secondary" type="button">العربية</button></div>
+  </header>
+  <nav class="toolbar" aria-label="Main navigation">
+    <button class="active" data-tab="overview" id="tabOverview">Overview</button>
+    <button data-tab="ledger" id="tabLedger">Public records</button>
+    <button data-tab="history" id="tabHistory">Monthly history</button>
+    <button data-tab="admin" id="tabAdmin">Manage records</button>
+  </nav>
+  <div class="note" id="privacyNotice">This is a local prototype. Records are saved only in this browser on this device. It is not secure shared storage and is not ready for public financial use.</div>
+
+  <section id="overview">
+    <div class="grid">
+      <div class="metric"><small id="targetLabel">Monthly donation goal</small><strong id="targetValue">EGP 600</strong></div>
+      <div class="metric"><small id="donationsLabel">Donations received</small><strong class="good" id="donationsValue">EGP 0</strong></div>
+      <div class="metric"><small id="expensesLabel">Expenses recorded</small><strong id="expensesValue">EGP 0</strong></div>
+      <div class="metric"><small id="balanceLabel">Money left at month end</small><strong id="balanceValue">EGP 0</strong></div>
+    </div>
+    <div class="panel">
+      <div class="row"><h2 id="progressTitle">Funding progress</h2><strong id="progressPct">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div>
+      <p class="muted" id="neededText"></p>
+      <div class="row"><span id="openingLabel">Money brought forward from last month</span><strong id="openingValue">EGP 0</strong></div>
+      <div class="row" style="margin-top:10px"><span id="netLabel">Donations minus expenses</span><strong id="netValue">EGP 0</strong></div>
+    </div>
+    <div class="panel"><h2 id="latestTitle">Latest transactions</h2><div id="latestList"></div></div>
+  </section>
+
+  <section id="ledger" class="hidden">
+    <div class="panel">
+      <div class="row"><h2 id="ledgerTitle">Public record of donations and spending</h2><select id="ledgerFilter" style="max-width:180px"><option value="all">All</option><option value="donation">Donations</option><option value="expense">Expenses</option></select></div>
+      <p class="muted" id="ledgerDescription">Only public display names are shown here. Private donor names are never rendered in this ledger.</p>
+      <div id="ledgerList"></div>
+      <div class="actions"><button class="secondary" id="exportCsv">Download public records (CSV)</button><button class="secondary" id="exportBackup">Download private backup (JSON)</button></div>
+    </div>
+  </section>
+
+  <section id="history" class="hidden">
+    <div class="panel"><h2 id="historyTitle">Monthly history</h2><p class="muted" id="historyDescription">Each month starts with money left from the previous month, then adds donations and subtracts expenses.</p><div id="historyList"></div></div>
+  </section>
+
+  <section id="admin" class="hidden">
+    <div class="panel">
+      <h2 id="settingsTitle">Monthly settings</h2>
+      <div class="formgrid">
+        <div class="field"><label id="monthLabel" for="monthInput">Month</label><input type="month" id="monthInput" value="2026-10"></div>
+        <div class="field"><label id="targetInputLabel" for="targetInput">Monthly donation goal (EGP)</label><input type="number" min="0" step=".01" id="targetInput" value="600"></div>
+        <div class="field"><label id="openingInputLabel" for="openingInput">Money brought forward from last month (EGP)</label><input type="number" step=".01" id="openingInput" value="100"></div>
+      </div>
+      <div class="actions"><button id="saveSettings">Save monthly settings</button></div>
+    </div>
+    <div class="panel">
+      <h2 id="addTitle">Record a transaction</h2>
+      <form id="entryForm">
+        <div class="formgrid">
+          <div class="field"><label id="typeLabel" for="entryType">Transaction type</label><select id="entryType"><option value="donation">Donation</option><option value="expense">Expense</option></select></div>
+          <div class="field"><label id="amountInputLabel" for="entryAmount">Amount (EGP)</label><input id="entryAmount" type="number" min=".01" step=".01" required placeholder="e.g. 200"></div>
+          <div class="field"><label id="dateLabel" for="entryDate">Date</label><input id="entryDate" type="date" required value="2026-10-14"></div>
+          <div class="field"><label id="recordMonthLabel" for="recordMonth">Month</label><input id="recordMonth" type="month" required value="2026-10"></div>
+          <div class="field" id="donorPrivateField"><label id="donorLabel" for="donorName">Donor name (private record)</label><input id="donorName" maxlength="120" placeholder="Optional private name"></div>
+          <div class="field" id="publicNameField"><label id="publicNameLabel" for="publicName">Public display name</label><input id="publicName" maxlength="120" placeholder="Anonymous"></div>
+          <div class="field hidden" id="expensePayeeField"><label id="payeeLabel" for="payeeName">Recipient / service provider</label><input id="payeeName" maxlength="120" placeholder="Hosting provider"></div>
+          <div class="field full"><label id="descriptionLabel" for="entryDescription">Description</label><input id="entryDescription" maxlength="240" required placeholder="Donation or expense details"></div>
+          <div class="field full"><label class="checkline"><input type="checkbox" id="publishDonor"> <span id="publishLabel">Show donor name publicly (only with permission)</span></label></div>
+        </div>
+        <div class="actions"><button type="submit" id="saveEntry">Add transaction</button><button type="button" class="secondary" id="clearForm">Clear form</button></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2 id="recordsTitle">Manage saved local records</h2>
+      <p class="muted" id="recordsDescription">You can delete demo/local records here. A production version will need authenticated administrators and a server-side audit trail.</p>
+      <div id="adminList"></div>
+      <div class="actions"><button class="danger" id="resetDemo">Reset local prototype data</button></div>
+    </div>
+  </section>
+  <div class="footer" id="footerText">TalkU Community Fund · Prototype only · No payments are processed.</div>
+</div>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const demoRecords = [
+ {id:1,month:"2026-10",date:"2026-10-05",type:"donation",amount:250,donorName:"",publicName:"Anonymous",publishDonor:false,payee:"",description:"Community contribution"},
+ {id:2,month:"2026-10",date:"2026-10-10",type:"donation",amount:500,donorName:"Community Member",publicName:"Anonymous",publishDonor:false,payee:"",description:"Server fund contribution"},
+ {id:3,month:"2026-10",date:"2026-10-12",type:"expense",amount:400,donorName:"",publicName:"",publishDonor:false,payee:"Example hosting provider",description:"Illustrative server hosting bill"}
+];
+const defaultState = () => ({records:structuredClone(demoRecords),settings:{"2026-09":{target:600,opening:0},"2026-10":{target:600,opening:100}}});
+let state;
+try { state=JSON.parse(localStorage.getItem("talku-donation-prototype-v1")) || defaultState(); } catch { state=defaultState(); }
+let lang="en", activeTab="overview";
+const t = {
+ en:{title:"TalkU Community Fund",subtitle:"Donations and spending",demoTag:"LOCAL PROTOTYPE",overview:"Overview",ledgerTab:"Public records",historyTab:"Monthly history",admin:"Manage records",notice:"This is a local prototype. Records are saved only in this browser on this device. It is not secure shared storage and is not ready for public financial use.",target:"Monthly donation goal",donations:"Donations received",expenses:"Money spent",balance:"Money left at month end",progress:"Progress toward donation goal",needed:"More donations needed to reach the goal",opening:"Money brought forward from last month",net:"Donations minus expenses",latest:"Latest activity",ledgerTitle:"Public record of donations and spending",filterAll:"All",filterDonations:"Donations",filterExpenses:"Spending",ledgerDescription:"Only names approved for public display are shown here. Private donor names are not shown.",historyTitle:"Monthly history",historyDescription:"Each month starts with money left from the previous month, then adds donations and subtracts spending.",settings:"Month settings",month:"Month",targetInput:"Monthly donation goal (EGP)",openingInput:"Money brought forward from last month (EGP)",saveSettings:"Save month settings",addTitle:"Add a record",type:"Record type",donation:"Donation received",expense:"Money spent",amount:"Amount (EGP)",date:"Date",recordMonth:"Month",donor:"Donor name (private)",privatePlaceholder:"Optional private name",publicName:"Name shown publicly",anonymous:"Anonymous",payee:"Paid to / service provider",providerPlaceholder:"Hosting provider",description:"What was this for?",descriptionPlaceholder:"Brief details of the donation or spending",publish:"Show donor name publicly (only with permission)",add:"Add record",clear:"Clear form",records:"Manage saved records",recordsDescription:"You can delete demo/local records here. The final online version will need secure administrator access and a history of changes.",reset:"Reset demo data",footer:"TalkU Community Fund · Demo only · No payments are processed.",noRecords:"No records yet.",receipt:"No receipt attached",delete:"Delete",confirmDelete:"Delete this local record?",confirmReset:"Reset all demo records and settings?",saved:"Month settings saved in this browser.",invalid:"Enter a valid amount greater than zero, a date, and a description.",donorPrivate:"Private donor name",public:"Public name",payeeLabel:"Paid to / provider",typeLabel:"Type",exportCsv:"Download public records (CSV)",exportBackup:"Download private backup (JSON)",anonymousFallback:"Anonymous",monthNames:["January","February","March","April","May","June","July","August","September","October","November","December"]},
+ ar:{title:"صندوق مجتمع TalkU",subtitle:"التبرعات والمصروفات",demoTag:"نموذج محلي",overview:"الرئيسية",ledgerTab:"السجلات العامة",historyTab:"السجل الشهري",admin:"إدارة السجلات",notice:"هذه نسخة تجريبية محلية. تُحفظ البيانات في هذا المتصفح وعلى هذا الجهاز فقط. التخزين ليس آمنًا أو مشتركًا، ولا تصلح هذه النسخة للاستخدام المالي العام.",target:"الهدف الشهري للتبرعات",donations:"التبرعات التي وصلت",expenses:"المبالغ التي تم صرفها",balance:"المبلغ المتبقي في نهاية الشهر",progress:"مدى الوصول لهدف التبرعات",needed:"المبلغ المطلوب للوصول إلى الهدف",opening:"المبلغ المتبقي من الشهر السابق",net:"التبرعات ناقص المصروفات",latest:"أحدث الحركات",ledgerTitle:"سجل التبرعات والمصروفات العام",filterAll:"الكل",filterDonations:"التبرعات",filterExpenses:"المصروفات",ledgerDescription:"تظهر هنا الأسماء المسموح بنشرها فقط. لا تظهر أسماء المتبرعين الخاصة.",historyTitle:"ملخص الشهور السابقة",historyDescription:"يبدأ كل شهر بالمبلغ المتبقي من الشهر السابق، ثم نضيف التبرعات ونخصم المصروفات.",settings:"إعدادات الشهر",month:"الشهر",targetInput:"الهدف الشهري للتبرعات (جنيه مصري)",openingInput:"المبلغ المتبقي من الشهر السابق (جنيه مصري)",saveSettings:"حفظ إعدادات الشهر",addTitle:"إضافة حركة جديدة",type:"نوع الحركة",donation:"تبرع وصل",expense:"مبلغ تم صرفه",amount:"المبلغ (جنيه مصري)",date:"التاريخ",recordMonth:"الشهر",donor:"اسم المتبرع (خاص)",privatePlaceholder:"اسم خاص اختياري",publicName:"الاسم الظاهر للناس",anonymous:"بدون اسم",payee:"تم الدفع إلى / مقدم الخدمة",providerPlaceholder:"مزود الاستضافة",description:"سبب الحركة",descriptionPlaceholder:"تفاصيل بسيطة عن التبرع أو المصروف",publish:"إظهار اسم المتبرع للعامة (بموافقته فقط)",add:"إضافة الحركة",clear:"مسح الخانات",records:"إدارة السجلات المحفوظة",recordsDescription:"يمكنك حذف السجلات التجريبية هنا. النسخة النهائية على الإنترنت ستحتاج إلى دخول آمن للمسؤولين وسجل للتعديلات.",reset:"إعادة بيانات النموذج التجريبي",noRecords:"لا توجد سجلات بعد.",receipt:"لا يوجد إيصال مرفق",delete:"حذف",confirmDelete:"هل تريد حذف هذا السجل المحلي؟",confirmReset:"هل تريد حذف كل السجلات والإعدادات التجريبية وإعادتها كما كانت؟",saved:"تم حفظ إعدادات الشهر في هذا المتصفح.",invalid:"أدخل مبلغًا أكبر من صفر وتاريخًا وسببًا للحركة.",donorPrivate:"اسم المتبرع الخاص",public:"الاسم الظاهر للناس",payeeLabel:"تم الدفع إلى / مقدم الخدمة",typeLabel:"النوع",exportCsv:"تنزيل السجلات العامة (CSV)",exportBackup:"تنزيل نسخة احتياطية خاصة (JSON)",anonymousFallback:"مجهول",monthNames:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]}
+};
+function tr(key){return t[lang][key] ?? t.en[key] ?? key}
+function persist(){localStorage.setItem("talku-donation-prototype-v1",JSON.stringify(state))}
+function money(n){return new Intl.NumberFormat(lang==="ar"?"ar-EG":"en-EG",{style:"currency",currency:"EGP",maximumFractionDigits:2}).format(n)}
+function monthLabel(m){const [y,mo]=m.split("-").map(Number);return `${t[lang].monthNames[mo-1]} ${y}`}
+function monthRecords(m){return state.records.filter(r=>r.month===m)}
+function totals(m){const rs=monthRecords(m);return {donations:rs.filter(r=>r.type==="donation").reduce((s,r)=>s+r.amount,0),expenses:rs.filter(r=>r.type==="expense").reduce((s,r)=>s+r.amount,0)}}
+function setting(m){return state.settings[m]||{target:600,opening:0}}
+function closing(m){const s=setting(m),v=totals(m);return Number(s.opening||0)+v.donations-v.expenses}
+function publicName(r){if(r.type!=="donation")return r.payee||"—";return r.publishDonor?(r.publicName||tr("anonymousFallback")):tr("anonymousFallback")}
+function txHtml(r,admin=false){const label=r.type==="donation"?tr("donation"):tr("expense"),name=admin?(r.type==="donation"?`${tr("donorPrivate")}: ${r.donorName||"—"} · ${tr("public")}: ${publicName(r)}`:`${tr("payeeLabel")}: ${r.payee||"—"}`):publicName(r);return `<div class="transaction"><div class="tx-main"><strong>${esc(r.description||label)}</strong><div class="tx-meta">${esc(r.date)} · ${esc(name)}</div><div class="tx-meta">${esc(label)} · #${String(r.id).padStart(3,"0")}</div></div><div><div class="amount ${r.type==="donation"?"in":"out"}">${r.type==="donation"?"+":"−"}${money(r.amount)}</div>${admin?`<button class="danger" style="margin-top:8px;padding:6px 9px" data-delete="${r.id}">${tr("delete")}</button>`:""}</div></div>`}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderList(target,rs,admin=false){$(target).innerHTML=rs.length?rs.map(r=>txHtml(r,admin)).join(""):`<div class="empty">${tr("noRecords")}</div>`}
+function render(){
+ const m=$("monthInput").value||"2026-10",s=setting(m),v=totals(m),bal=closing(m),pct=Number(s.target)>0?Math.round(v.donations/Number(s.target)*100):0;
+ $("targetValue").textContent=money(Number(s.target)||0);$("donationsValue").textContent=money(v.donations);$("expensesValue").textContent=money(v.expenses);$("balanceValue").textContent=money(bal);$("balanceValue").className=bal>=0?"good":"";
+ $("progressPct").textContent=pct+"%";$("progressBar").style.width=Math.min(100,pct)+"%";$("neededText").textContent=`${tr("needed")}: ${money(Math.max(0,(Number(s.target)||0)-v.donations))}`;$("openingValue").textContent=money(Number(s.opening)||0);$("netValue").textContent=money(v.donations-v.expenses);
+ const sorted=monthRecords(m).slice().sort((a,b)=>b.date.localeCompare(a.date));renderList("latestList",sorted.slice(0,5));const f=$("ledgerFilter").value;renderList("ledgerList",state.records.filter(r=>f==="all"||r.type===f).slice().sort((a,b)=>b.date.localeCompare(a.date)));renderList("adminList",state.records.slice().sort((a,b)=>b.date.localeCompare(a.date)),true);
+ const months=[...new Set([...Object.keys(state.settings),...state.records.map(r=>r.month)])].sort().reverse();
+ $("historyList").innerHTML=months.map(mm=>{const tt=totals(mm),ss=setting(mm);return `<div class="panel" style="margin:10px 0;background:#fafcfc"><div class="row"><h3 style="margin:0">${esc(monthLabel(mm))}</h3><span class="pill">${esc(mm)}</span></div><div class="row" style="margin-top:12px"><span>${tr("opening")}</span><strong>${money(Number(ss.opening)||0)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("donations")}</span><strong class="good">${money(tt.donations)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("expenses")}</span><strong>${money(tt.expenses)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("balance")}</span><strong>${money(closing(mm))}</strong></div></div>`}).join("")||`<div class="empty">${tr("noRecords")}</div>`;
+ updateEntryType();
+}
+function setLanguage(next){lang=next;document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";$("langBtn").textContent=lang==="ar"?"English":"العربية";const map={appTitle:"title",subtitle:"subtitle",demoTag:"demoTag",tabOverview:"overview",tabLedger:"ledgerTab",tabHistory:"historyTab",tabAdmin:"admin",privacyNotice:"notice",targetLabel:"target",donationsLabel:"donations",expensesLabel:"expenses",balanceLabel:"balance",progressTitle:"progress",openingLabel:"opening",netLabel:"net",latestTitle:"latest",ledgerTitle:"ledgerTitle",ledgerDescription:"ledgerDescription",historyTitle:"historyTitle",historyDescription:"historyDescription",settingsTitle:"settings",monthLabel:"month",targetInputLabel:"targetInput",openingInputLabel:"openingInput",saveSettings:"saveSettings",addTitle:"addTitle",typeLabel:"type",amountInputLabel:"amount",dateLabel:"date",recordMonthLabel:"recordMonth",donorLabel:"donor",publicNameLabel:"publicName",payeeLabel:"payee",descriptionLabel:"description",publishLabel:"publish",saveEntry:"add",clearForm:"clear",recordsTitle:"records",recordsDescription:"recordsDescription",resetDemo:"reset",exportCsv:"exportCsv",exportBackup:"exportBackup",footerText:"footer"};
+ Object.entries(map).forEach(([id,k])=>{if($(id))$(id).textContent=tr(k)});$("ledgerFilter").options[0].text=tr("filterAll");$("ledgerFilter").options[1].text=tr("filterDonations");$("ledgerFilter").options[2].text=tr("filterExpenses");$("entryType").options[0].text=tr("donation");$("entryType").options[1].text=tr("expense");$("donorName").placeholder=tr("privatePlaceholder");$("publicName").placeholder=tr("anonymous");$("payeeName").placeholder=tr("providerPlaceholder");$("entryDescription").placeholder=tr("descriptionPlaceholder");document.querySelectorAll("[data-tab]").forEach(b=>{b.textContent=tr(({overview:"overview",ledger:"ledgerTab",history:"historyTab",admin:"admin"})[b.dataset.tab])});render();setActiveTab(activeTab)}
+function setActiveTab(tab){activeTab=tab;document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));["overview","ledger","history","admin"].forEach(id=>$(id).classList.toggle("hidden",id!==tab))}
+function updateEntryType(){const donation=$("entryType").value==="donation";$("donorPrivateField").classList.toggle("hidden",!donation);$("publicNameField").classList.toggle("hidden",!donation);$("publishLabel").parentElement.parentElement.classList.toggle("hidden",!donation);$("expensePayeeField").classList.toggle("hidden",donation);$("publishDonor").disabled=!donation;if(!donation)$("publishDonor").checked=false}
+$("langBtn").addEventListener("click",()=>setLanguage(lang==="en"?"ar":"en"));document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>setActiveTab(b.dataset.tab)));
+$("entryType").addEventListener("change",updateEntryType);$("monthInput").addEventListener("change",()=>{const s=setting($("monthInput").value);$("targetInput").value=s.target??600;$("openingInput").value=s.opening??0;render()});$("ledgerFilter").addEventListener("change",render);
+$("saveSettings").addEventListener("click",()=>{const m=$("monthInput").value;if(!m)return;state.settings[m]={target:Math.max(0,Number($("targetInput").value)||0),opening:Number($("openingInput").value)||0};persist();render();alert(tr("saved"))});
+$("entryForm").addEventListener("submit",e=>{e.preventDefault();const amount=Number($("entryAmount").value),date=$("entryDate").value,month=$("recordMonth").value,description=$("entryDescription").value.trim(),type=$("entryType").value;if(!Number.isFinite(amount)||amount<=0||!date||!month||!description){alert(tr("invalid"));return}const donorName=$("donorName").value.trim(),pub=$("publishDonor").checked;state.records.push({id:Math.max(0,...state.records.map(r=>r.id))+1,month,date,type,amount:Math.round(amount*100)/100,donorName,publicName:pub?(($("publicName").value.trim()||donorName)||tr("anonymousFallback")):tr("anonymousFallback"),publishDonor:pub,payee:type==="expense"?$("payeeName").value.trim():"",description});if(!state.settings[month])state.settings[month]={target:600,opening:0};persist();$("entryForm").reset();$("entryDate").value=new Date().toISOString().slice(0,10);$("recordMonth").value=$("monthInput").value;$("entryType").value="donation";updateEntryType();render();setActiveTab("ledger")});
+$("clearForm").addEventListener("click",()=>{$("entryForm").reset();$("entryDate").value=new Date().toISOString().slice(0,10);$("recordMonth").value=$("monthInput").value;updateEntryType()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-delete]");if(!b)return;if(confirm(tr("confirmDelete"))){state.records=state.records.filter(r=>r.id!==Number(b.dataset.delete));persist();render()}});
+$("resetDemo").addEventListener("click",()=>{if(confirm(tr("confirmReset"))){state=defaultState();persist();$("monthInput").value="2026-10";$("targetInput").value=600;$("openingInput").value=100;render()}});
+function download(name,content,type){const a=document.createElement("a"),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$("exportCsv").addEventListener("click",()=>{const rows=[["date","month","type","amount_EGP","public_name","description"],...state.records.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,r.month,r.type,r.amount,publicName(r),r.description])];download("talku-public-ledger.csv","\ufeff"+rows.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),"text/csv;charset=utf-8")});
+$("exportBackup").addEventListener("click",()=>download("talku-local-backup.json",JSON.stringify(state,null,2),"application/json"));
+$("monthInput").value="2026-10";$("targetInput").value=600;$("openingInput").value=100;$("recordMonth").value="2026-10";$("entryDate").value="2026-10-14";setLanguage("en");render();
+})();
+</script>
+</body>
+</html>
