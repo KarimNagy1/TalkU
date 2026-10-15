@@ -1,3 +1,4 @@
+
 import {
   createPasswordRecord,
   getAdmin,
@@ -8,26 +9,29 @@ import {
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
 
-async function requireOwner(request, env) {
+async function requireAdmin(request, env) {
   const admin = await getAdmin(request, env);
+
   if (!admin) {
     return { error: json({ error: "Authentication required." }, 401) };
   }
-  if (admin.role !== "owner") {
-    return { error: json({ error: "Owner access required." }, 403) };
-  }
+
   return { admin };
 }
 
+
 export async function onRequestGet({ request, env }) {
   try {
-    const auth = await requireOwner(request, env);
+    const auth = await requireAdmin(request, env);
     if (auth.error) return auth.error;
 
     const result = await env.DB.prepare(`
       SELECT id, username, role, is_active, created_at
       FROM admin_users
-      ORDER BY created_at ASC, username COLLATE NOCASE ASC
+      ORDER BY
+        CASE WHEN role = 'owner' THEN 0 ELSE 1 END,
+        created_at ASC,
+        username COLLATE NOCASE ASC
     `).all();
 
     return json({ accounts: result.results || [] });
@@ -43,7 +47,7 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Invalid request origin." }, 403);
     }
 
-    const auth = await requireOwner(request, env);
+    const auth = await requireAdmin(request, env);
     if (auth.error) return auth.error;
 
     if (!request.headers.get("Content-Type")?.toLowerCase().includes("application/json")) {
@@ -81,7 +85,9 @@ export async function onRequestPost({ request, env }) {
     }
 
     const existing = await env.DB.prepare(`
-      SELECT id FROM admin_users WHERE username = ? COLLATE NOCASE LIMIT 1
+      SELECT id FROM admin_users
+      WHERE username = ? COLLATE NOCASE
+      LIMIT 1
     `).bind(username).first();
 
     if (existing) {
@@ -112,5 +118,69 @@ export async function onRequestPost({ request, env }) {
 
     console.error("Admin account creation failed:", error);
     return json({ error: "Unable to create the administrator account." }, 500);
+  }
+}
+
+export async function onRequestDelete({ request, env }) {
+  try {
+    if (!sameOrigin(request)) {
+      return json({ error: "Invalid request origin." }, 403);
+    }
+
+    const auth = await requireAdmin(request, env);
+    if (auth.error) return auth.error;
+
+    const targetId = new URL(request.url).searchParams.get("id") || "";
+
+    if (!targetId || targetId.length > 128) {
+      return json({ error: "A valid administrator account ID is required." }, 400);
+    }
+
+    if (targetId === auth.admin.id) {
+      return json({ error: "You cannot delete your own account." }, 403);
+    }
+
+    const target = await env.DB.prepare(`
+      SELECT id, username, role
+      FROM admin_users
+      WHERE id = ?
+      LIMIT 1
+    `).bind(targetId).first();
+
+    if (!target) {
+      return json({ error: "Administrator account not found." }, 404);
+    }
+
+    if (target.role === "owner") {
+      return json({ error: "The owner account cannot be deleted." }, 403);
+    }
+
+    if (target.role !== "admin") {
+      return json({ error: "This account cannot be deleted." }, 403);
+    }
+
+    const results = await env.DB.batch([
+      env.DB.prepare(`
+        DELETE FROM admin_users
+        WHERE id = ? AND role = 'admin'
+      `).bind(targetId),
+      env.DB.prepare(`
+        DELETE FROM admin_sessions
+        WHERE admin_user_id = ?
+      `).bind(targetId)
+    ]);
+
+    if (!results?.[0]?.meta?.changes) {
+      return json({ error: "Administrator account could not be deleted." }, 409);
+    }
+
+    return json({
+      ok: true,
+      message: "Administrator account deleted.",
+      accountId: targetId
+    });
+  } catch (error) {
+    console.error("Admin account deletion failed:", error);
+    return json({ error: "Unable to delete the administrator account." }, 500);
   }
 }

@@ -138,7 +138,7 @@
     </div>
     <div class="panel hidden" id="adminAccountsPanel">
       <h2 id="adminAccountsTitle">Admin accounts</h2>
-      <p class="muted" id="adminAccountsDescription">Only the owner can create and view administrator accounts.</p>
+      <p class="muted" id="adminAccountsDescription">All administrators can create and remove other administrator accounts..</p>
       <form id="adminAccountForm">
         <div class="formgrid">
           <div class="field">
@@ -157,6 +157,58 @@
       <p id="adminAccountsMessage" class="muted" role="status" aria-live="polite"></p>
       <div id="adminAccountsList"></div>
     </div>
+
+    <div class="panel hidden" id="changePasswordPanel">
+      <h2 id="changePasswordTitle">Change your password</h2>
+
+      <form id="changePasswordForm">
+        <div class="formgrid">
+          <div class="field">
+            <label id="currentPasswordLabel" for="currentPassword">
+              Current password
+            </label>
+            <input
+              id="currentPassword"
+              name="currentPassword"
+              type="password"
+              autocomplete="current-password"
+              maxlength="256"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label id="newPasswordLabel" for="newPassword">
+              New password (12–256 characters)
+            </label>
+            <input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              autocomplete="new-password"
+              minlength="12"
+              maxlength="256"
+              required
+            >
+          </div>
+        </div>
+
+        <p
+          id="changePasswordMessage"
+          class="muted"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <div class="actions">
+          <button type="submit" id="changePasswordButton">
+            Change password
+          </button>
+        </div>
+      </form>
+    </div>
+
+
     <div class="panel">
       <h2 id="recordsTitle">Manage fund records</h2>
       <p class="muted" id="recordsDescription">Only authorized administrators can manage records. Changes are processed by the server and recorded in the audit log.</p>

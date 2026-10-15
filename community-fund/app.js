@@ -10,6 +10,7 @@
     session: "/api/auth/me",
     logout: "/api/auth/logout",
     accounts: "/api/auth/accounts",
+    password: "/api/auth/password",
     serverStatus: "/api/server-status"
   };
 
@@ -79,7 +80,7 @@
       records: "Manage fund records",
       recordsDescription: "Only authorized administrators can manage records. Changes are processed by the server and recorded in the audit log.",
       adminAccountsTitle: "Admin accounts",
-      adminAccountsDescription: "Only the owner can create and view administrator accounts.",
+      adminAccountsDescription: "All administrators can create and remove other administrator accounts.",
       newAdminUsername: "New username",
       newAdminPassword: "Temporary password (12–256 characters)",
       createAdminAccount: "Create administrator",
@@ -126,7 +127,20 @@
       serverOnline: n => `TalkU Server: online · ${n} connected`,
       serverOffline: "TalkU Server: unavailable",
       footer: "TalkU Community Fund · No payments are processed on this site.",
-      monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+      monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      removeAdmin: "Remove admin",
+      confirmRemoveAdmin: "Permanently remove this administrator? Their active sessions will be revoked.",
+      adminRemoved: "Administrator removed.",
+      adminRemoveError: "Could not remove the administrator.",
+      cannotRemoveSelf: "You cannot remove your own account.",
+      changePasswordTitle: "Change your password",
+      currentPasswordLabel: "Current password",
+      newPasswordLabel: "New password (12–256 characters)",
+      changePasswordButton: "Change password",
+      passwordChanged: "Password changed. Please sign in again.",
+      passwordChangeError: "Could not change your password.",
+      currentPasswordIncorrect: "Current password is incorrect.",
+      newPasswordSame: "The new password must be different from the current password.",
     },
     ar: {
       title: "صندوق مجتمع TalkU",
@@ -191,7 +205,7 @@
       records: "إدارة سجلات الصندوق",
       recordsDescription: "يمكن للمسؤولين المصرح لهم فقط إدارة السجلات. تُعالج التغييرات على الخادم وتُسجّل في سجل التدقيق.",
       adminAccountsTitle: "حسابات المسؤولين",
-      adminAccountsDescription: "يمكن للمالك فقط إنشاء حسابات المسؤولين وعرضها.",
+      adminAccountsDescription: "يمكن لجميع المسؤولين إنشاء حسابات مسؤولين أخرى وحذفها.",
       newAdminUsername: "اسم المستخدم الجديد",
       newAdminPassword: "كلمة مرور مؤقتة (من 12 إلى 256 حرفًا)",
       createAdminAccount: "إنشاء حساب مسؤول",
@@ -238,7 +252,20 @@
       serverOnline: n => `خادم TalkU متاح · ${n} متصل`,
       serverOffline: "خادم TalkU غير متاح",
       footer: "صندوق مجتمع TalkU · لا تتم معالجة أي مدفوعات على هذا الموقع.",
-      monthNames: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+      monthNames: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+      removeAdmin: "حذف المسؤول",
+      confirmRemoveAdmin: "هل تريد حذف حساب هذا المسؤول نهائيًا؟ سيتم إنهاء جلساته النشطة.",
+      adminRemoved: "تم حذف حساب المسؤول.",
+      adminRemoveError: "تعذر حذف حساب المسؤول.",
+      cannotRemoveSelf: "لا يمكنك حذف حسابك بنفسك.",
+      changePasswordTitle: "تغيير كلمة المرور",
+      currentPasswordLabel: "كلمة المرور الحالية",
+      newPasswordLabel: "كلمة المرور الجديدة (من 12 إلى 256 حرفًا)",
+      changePasswordButton: "تغيير كلمة المرور",
+      passwordChanged: "تم تغيير كلمة المرور. يرجى تسجيل الدخول مجددًا.",
+      passwordChangeError: "تعذر تغيير كلمة المرور.",
+      currentPasswordIncorrect: "كلمة المرور الحالية غير صحيحة.",
+      newPasswordSame: "يجب أن تختلف كلمة المرور الجديدة عن الحالية.",
     }
   };
 
@@ -489,11 +516,12 @@
     renderAdminAccounts();
   }
 
+
   function renderAdminAccounts() {
     const list = $("adminAccountsList");
     if (!list) return;
 
-    if (!state.admin || state.admin.role !== "owner") {
+    if (!state.admin) {
       list.innerHTML = "";
       return;
     }
@@ -506,18 +534,27 @@
     list.innerHTML = state.adminAccounts.map(account => {
       const role = account.role === "owner" ? tr("ownerRole") : tr("adminRole");
       const status = Number(account.is_active) === 1 ? tr("active") : tr("inactive");
-      return `<div class="row" style="padding:10px 0;border-bottom:1px solid var(--border,#ddd);gap:12px">
+      const isOwner = account.role === "owner";
+      const isSelf =
+        account.username.toLowerCase() === state.admin.username.toLowerCase();
+
+      const removeButton = !isOwner && !isSelf
+        ? `<button type="button" class="danger" data-remove-admin="${escapeHtml(account.id)}">${escapeHtml(tr("removeAdmin"))}</button>`
+        : "";
+
+      return `<div class="row" style="padding:10px 0;border-bottom:1px solid var(--border,#ddd);gap:12px;align-items:center;justify-content:space-between">
         <div>
           <strong>${escapeHtml(account.username)}</strong>
-          <div class="muted">${escapeHtml(tr("accountRole"))}: ${escapeHtml(role)} · ${escapeHtml(tr("accountStatus"))}: ${escapeHtml(status)}</div>
+          <div class="muted">${escapeHtml(tr("accountRole"))}: ${escapeHtml(role)} ·   ${escapeHtml(tr("accountStatus"))}: ${escapeHtml(status)}</div>
           <div class="muted">${escapeHtml(tr("accountCreatedAt"))}: ${escapeHtml(account.created_at || "—")}</div>
         </div>
+        ${removeButton}
       </div>`;
     }).join("");
   }
 
   async function loadAdminAccounts({ clearMessage = true } = {}) {
-    if (!state.admin || state.admin.role !== "owner") {
+    if (!state.admin) {
       state.adminAccounts = [];
       renderAdminAccounts();
       return;
@@ -539,10 +576,43 @@
     }
   }
 
+
+  async function removeAdminAccount(id) {
+    if (!state.admin || !id) return;
+
+    if (!confirm(tr("confirmRemoveAdmin"))) return;
+
+    const message = $("adminAccountsMessage");
+    message.textContent = "";
+    message.className = "muted";
+
+    try {
+      await apiRequest(`${API.accounts}?id=${encodeURIComponent(id)}`, {
+        method: "DELETE"
+      });
+
+      message.textContent = tr("adminRemoved");
+      message.className = "success";
+
+      await loadAdminAccounts({ clearMessage: false });
+    } catch (error) {
+      console.error("Removing administrator failed:", error);
+
+      if (error.status === 403 && error.message) {
+        message.textContent = error.message;
+      } else {
+        message.textContent = tr("adminRemoveError");
+      }
+
+      message.className = "error";
+    }
+  }
+
+
   async function createAdminAccount(event) {
     event.preventDefault();
 
-    if (!state.admin || state.admin.role !== "owner") return;
+    if (!state.admin) return;
 
     const username = $("newAdminUsername").value.trim();
     const password = $("newAdminPassword").value;
@@ -570,6 +640,57 @@
     }
   }
 
+
+  async function changePassword(event) {
+    event.preventDefault();
+
+    if (!state.admin) return;
+
+    const form = $("changePasswordForm");
+    const message = $("changePasswordMessage");
+    const currentPassword = $("currentPassword").value;
+    const newPassword = $("newPassword").value;
+
+    message.textContent = "";
+    message.className = "muted";
+
+    if (newPassword.length < 12 || newPassword.length > 256) {
+      message.textContent = tr("passwordChangeError");
+      message.className = "error";
+      return;
+    }
+
+    try {
+      await apiRequest(API.password, {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+      });
+
+      form.reset();
+      clearAdminState();
+
+      $("adminLoginPanel").classList.remove("hidden");
+      setMessage(tr("passwordChanged"));
+      showTab("overview");
+    } catch (error) {
+      console.error("Password change failed:", error);
+
+      if (error.status === 401) {
+        message.textContent = tr("currentPasswordIncorrect");
+      } else if (error.status === 400 && error.message) {
+        message.textContent = error.message;
+      } else {
+        message.textContent = tr("passwordChangeError");
+      }
+
+      message.className = "error";
+    }
+  }
+
+
   function render() {
     renderOverview();
     renderLedger();
@@ -588,13 +709,16 @@
     $("adminLoginToggle").classList.toggle("hidden", authenticated);
     $("adminLogout").classList.toggle("hidden", !authenticated);
     $("tabAdmin").classList.toggle("hidden", !authenticated);
-    $("adminAccountsPanel").classList.toggle(
-      "hidden",
-      !authenticated || state.admin.role !== "owner"
-    );
+    $("adminAccountsPanel").classList.toggle("hidden", !authenticated);
+    $("adminAccountForm").classList.toggle("hidden", !authenticated);
+    $("changePasswordPanel").classList.toggle("hidden", !authenticated);
 
-    if (!authenticated && state.activeTab === "admin") showTab("overview");
-    if (authenticated) $("adminLoginPanel").classList.add("hidden");
+    if (!authenticated && state.activeTab === "admin") {
+      showTab("overview");
+    }
+    if (authenticated) {
+      $("adminLoginPanel").classList.add("hidden");
+    }
     renderAdmin();
   }
 
@@ -647,6 +771,10 @@
       recordsTitle: "records", recordsDescription: "recordsDescription",
       adminAccountsTitle: "adminAccountsTitle",
       adminAccountsDescription: "adminAccountsDescription",
+      changePasswordTitle: "changePasswordTitle",
+      currentPasswordLabel: "currentPasswordLabel",
+      newPasswordLabel: "newPasswordLabel",
+      changePasswordButton: "changePasswordButton",
       newAdminUsernameLabel: "newAdminUsername",
       newAdminPasswordLabel: "newAdminPassword",
       createAdminAccountButton: "createAdminAccount",
@@ -736,7 +864,9 @@
       if (result.authenticated && result.admin) {
         state.admin = result.admin;
         await loadAdminEntries();
-        if (state.admin.role === "owner") await loadAdminAccounts();
+        if (state.admin) {
+          await loadAdminAccounts();
+        }
       } else {
         clearAdminState();
       }
@@ -761,7 +891,7 @@
 
       state.admin = { username: result.username, role: result.role };
       await loadAdminEntries();
-      if (state.admin.role === "owner") await loadAdminAccounts();
+      if (state.admin) await loadAdminAccounts();
       setMessage(tr("loginSuccess"));
       $("adminPassword").value = "";
       $("adminLoginPanel").classList.add("hidden");
@@ -1147,13 +1277,18 @@
     $("entryDate").addEventListener("change", syncMonthFromDate);
     $("recordMonth").addEventListener("change", syncDateFromMonth);
     $("monthInput").addEventListener("change", syncSettingsInputs);
+    $("changePasswordForm").addEventListener("submit", changePassword);
 
     document.addEventListener("click", event => {
       const editButton = event.target.closest("[data-edit]");
       const deleteButton = event.target.closest("[data-delete]");
+      const removeAdminButton = event.target.closest("[data-remove-admin]");
 
       if (editButton) editEntry(editButton.dataset.edit);
       if (deleteButton) deleteEntry(deleteButton.dataset.delete);
+      if (removeAdminButton) {
+        removeAdminAccount(removeAdminButton.dataset.removeAdmin);
+      }
     });
   }
 
