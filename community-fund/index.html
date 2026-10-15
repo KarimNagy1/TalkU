@@ -16,7 +16,7 @@
 <div class="wrap">
   <header class="header">
     <div class="brand"><div class="logo">♥</div><div><h1 id="appTitle" style="margin:0;font-size:1.3rem">TalkU Community Fund</h1><div id="subtitle" class="muted">Donations and spending</div></div></div>
-    <div class="row"><span class="tag" id="demoTag">LOCAL PROTOTYPE</span><span class="pill status-checking" id="serverStatus" role="status" aria-live="polite">TalkU API: checking...</span><button id="langBtn" class="secondary" type="button">العربية</button></div>
+    <div class="row"><span class="tag" id="demoTag">TESTING — NOT READY</span><span class="pill status-checking" id="serverStatus" role="status" aria-live="polite">TalkU Server: checking...</span><button id="adminLoginToggle" class="secondary" type="button">Admin login</button><button id="langBtn" class="secondary" type="button">العربية</button></div>
   </header>
   <nav class="toolbar" aria-label="Main navigation">
     <button class="active" data-tab="overview" id="tabOverview">Overview</button>
@@ -24,7 +24,30 @@
     <button data-tab="history" id="tabHistory">Monthly history</button>
     <button data-tab="admin" id="tabAdmin">Manage records</button>
   </nav>
-  <div class="note" id="privacyNotice">This is a local prototype. Records are saved only in this browser on this device. It is not secure shared storage and is not ready for public financial use.</div>
+  <div class="note" id="privacyNotice">Public records are available without signing in. Private donor details are restricted to authorized administrators. This site is still being tested and is not yet ready for public financial use.</div>
+
+  <section id="adminLoginPanel" class="panel hidden" aria-labelledby="adminLoginTitle">
+    <h2 id="adminLoginTitle">Administrator login</h2>
+    <p class="muted" id="adminLoginDescription">Sign in only if you are an authorized fund administrator. Public records do not require login.</p>
+    <form id="adminLoginForm">
+      <div class="formgrid">
+        <div class="field">
+          <label for="adminUsername" id="adminUsernameLabel">Username</label>
+          <input id="adminUsername" name="username" autocomplete="username" required maxlength="32">
+        </div>
+        <div class="field">
+          <label for="adminPassword" id="adminPasswordLabel">Password</label>
+          <input id="adminPassword" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="256">
+        </div>
+      </div>
+      <p id="adminLoginMessage" class="muted" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="submit" id="adminLoginSubmit">Sign in</button>
+        <button type="button" class="secondary" id="adminLoginCancel">Cancel</button>
+        <button type="button" class="secondary hidden" id="adminLogout">Sign out</button>
+      </div>
+    </form>
+  </section>
 
   <section id="overview">
     <div class="grid">
@@ -40,6 +63,17 @@
       <div class="row"><span id="openingLabel">Money brought forward from last month</span><strong id="openingValue">EGP 0</strong></div>
       <div class="row" style="margin-top:10px"><span id="netLabel">Donations minus expenses</span><strong id="netValue">EGP 0</strong></div>
     </div>
+    <div class="panel" id="subscriptionPanel">
+      <h2 id="subscriptionTitle">Server subscription renewal</h2>
+      <div class="row" style="margin-top:12px">
+        <span id="renewalDateLabel">Next renewal date</span>
+        <strong id="renewalDateValue">Not configured</strong>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span id="renewalIntervalCaption">Renewal interval</span>
+        <span class="pill" id="renewalIntervalValue">—</span>
+      </div>
+    </div>
     <div class="panel"><h2 id="latestTitle">Latest transactions</h2><div id="latestList"></div></div>
   </section>
 
@@ -48,7 +82,7 @@
       <div class="row"><h2 id="ledgerTitle">Public record of donations and spending</h2><select id="ledgerFilter" style="max-width:180px"><option value="all">All</option><option value="donation">Donations</option><option value="expense">Expenses</option></select></div>
       <p class="muted" id="ledgerDescription">Only public display names are shown here. Private donor names are never rendered in this ledger.</p>
       <div id="ledgerList"></div>
-      <div class="actions"><button class="secondary" id="exportCsv">Download public records (CSV)</button><button class="secondary" id="exportBackup">Download private backup (JSON)</button></div>
+      <div class="actions"><button class="secondary" id="exportCsv">Download public records (CSV)</button></div>
     </div>
   </section>
 
@@ -65,6 +99,24 @@
         <div class="field"><label id="openingInputLabel" for="openingInput">Money brought forward from last month (EGP)</label><input type="number" step=".01" id="openingInput" value="100"></div>
       </div>
       <div class="actions"><button id="saveSettings">Save monthly settings</button></div>
+    </div>
+    <div class="panel">
+      <h2 id="subscriptionAdminTitle">Server subscription renewal</h2>
+      <p class="muted">Only authorized administrators can change this schedule.</p>
+      <div class="formgrid">
+        <div class="field">
+          <label id="renewalAnchorLabel" for="renewalAnchorDate">First renewal date</label>
+          <input type="date" id="renewalAnchorDate" required>
+        </div>
+        <div class="field">
+          <label id="renewalIntervalLabel" for="renewalIntervalInput">Repeat every</label>
+          <select id="renewalIntervalInput">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions"><button id="saveSubscriptionSettings" type="button">Save renewal schedule</button></div>
     </div>
     <div class="panel">
       <h2 id="addTitle">Record a transaction</h2>
@@ -84,109 +136,14 @@
       </form>
     </div>
     <div class="panel">
-      <h2 id="recordsTitle">Manage saved local records</h2>
-      <p class="muted" id="recordsDescription">You can delete demo/local records here. A production version will need authenticated administrators and a server-side audit trail.</p>
+      <h2 id="recordsTitle">Manage fund records</h2>
+      <p class="muted" id="recordsDescription">Only authorized administrators can manage records. Changes are processed by the server and recorded in the audit log.</p>
       <div id="adminList"></div>
-      <div class="actions"><button class="danger" id="resetDemo">Reset local prototype data</button></div>
+
     </div>
   </section>
   <div class="footer" id="footerText">TalkU Community Fund · Prototype only · No payments are processed.</div>
 </div>
-<script>
-(() => {
-const $ = id => document.getElementById(id);
-const demoRecords = [
- {id:1,month:"2026-10",date:"2026-10-05",type:"donation",amount:250,donorName:"",publicName:"Anonymous",publishDonor:false,payee:"",description:"Community contribution"},
- {id:2,month:"2026-10",date:"2026-10-10",type:"donation",amount:500,donorName:"Community Member",publicName:"Anonymous",publishDonor:false,payee:"",description:"Server fund contribution"},
- {id:3,month:"2026-10",date:"2026-10-12",type:"expense",amount:400,donorName:"",publicName:"",publishDonor:false,payee:"Example hosting provider",description:"Illustrative server hosting bill"}
-];
-const defaultState = () => ({records:structuredClone(demoRecords),settings:{"2026-09":{target:600,opening:0},"2026-10":{target:600,opening:100}}});
-let state;
-try { state=JSON.parse(localStorage.getItem("talku-donation-prototype-v1")) || defaultState(); } catch { state=defaultState(); }
-let lang="en", activeTab="overview";
-const t = {
- en:{title:"TalkU Community Fund",subtitle:"Donations and spending",demoTag:"LOCAL PROTOTYPE",overview:"Overview",ledgerTab:"Public records",historyTab:"Monthly history",admin:"Manage records",notice:"This is a local prototype. Records are saved only in this browser on this device. It is not secure shared storage and is not ready for public financial use.",target:"Monthly donation goal",donations:"Donations received",expenses:"Money spent",balance:"Money left at month end",progress:"Progress toward donation goal",needed:"More donations needed to reach the goal",opening:"Money brought forward from last month",net:"Donations minus expenses",latest:"Latest activity",ledgerTitle:"Public record of donations and spending",filterAll:"All",filterDonations:"Donations",filterExpenses:"Spending",ledgerDescription:"Only names approved for public display are shown here. Private donor names are not shown.",historyTitle:"Monthly history",historyDescription:"Each month starts with money left from the previous month, then adds donations and subtracts spending.",settings:"Month settings",month:"Month",targetInput:"Monthly donation goal (EGP)",openingInput:"Money brought forward from last month (EGP)",saveSettings:"Save month settings",addTitle:"Add a record",type:"Record type",donation:"Donation received",expense:"Money spent",amount:"Amount (EGP)",date:"Date",recordMonth:"Month",donor:"Donor name (private)",privatePlaceholder:"Optional private name",publicName:"Name shown publicly",anonymous:"Anonymous",payee:"Paid to / service provider",providerPlaceholder:"Hosting provider",description:"What was this for?",descriptionPlaceholder:"Brief details of the donation or spending",publish:"Show donor name publicly (only with permission)",add:"Add record",clear:"Clear form",records:"Manage saved records",recordsDescription:"You can delete demo/local records here. The final online version will need secure administrator access and a history of changes.",reset:"Reset demo data",footer:"TalkU Community Fund · Demo only · No payments are processed.",noRecords:"No records yet.",receipt:"No receipt attached",delete:"Delete",confirmDelete:"Delete this local record?",confirmReset:"Reset all demo records and settings?",saved:"Month settings saved in this browser.",invalid:"Enter a valid amount greater than zero, a date, and a description.",donorPrivate:"Private donor name",public:"Public name",payeeLabel:"Paid to / provider",typeLabel:"Type",exportCsv:"Download public records (CSV)",exportBackup:"Download private backup (JSON)",anonymousFallback:"Anonymous",monthNames:["January","February","March","April","May","June","July","August","September","October","November","December"]},
- ar:{title:"صندوق مجتمع TalkU",subtitle:"التبرعات والمصروفات",demoTag:"نموذج محلي",overview:"الرئيسية",ledgerTab:"السجلات العامة",historyTab:"السجل الشهري",admin:"إدارة السجلات",notice:"هذه نسخة تجريبية محلية. تُحفظ البيانات في هذا المتصفح وعلى هذا الجهاز فقط. التخزين ليس آمنًا أو مشتركًا، ولا تصلح هذه النسخة للاستخدام المالي العام.",target:"الهدف الشهري للتبرعات",donations:"التبرعات التي وصلت",expenses:"المبالغ التي تم صرفها",balance:"المبلغ المتبقي في نهاية الشهر",progress:"مدى الوصول لهدف التبرعات",needed:"المبلغ المطلوب للوصول إلى الهدف",opening:"المبلغ المتبقي من الشهر السابق",net:"التبرعات ناقص المصروفات",latest:"أحدث الحركات",ledgerTitle:"سجل التبرعات والمصروفات العام",filterAll:"الكل",filterDonations:"التبرعات",filterExpenses:"المصروفات",ledgerDescription:"تظهر هنا الأسماء المسموح بنشرها فقط. لا تظهر أسماء المتبرعين الخاصة.",historyTitle:"ملخص الشهور السابقة",historyDescription:"يبدأ كل شهر بالمبلغ المتبقي من الشهر السابق، ثم نضيف التبرعات ونخصم المصروفات.",settings:"إعدادات الشهر",month:"الشهر",targetInput:"الهدف الشهري للتبرعات (جنيه مصري)",openingInput:"المبلغ المتبقي من الشهر السابق (جنيه مصري)",saveSettings:"حفظ إعدادات الشهر",addTitle:"إضافة حركة جديدة",type:"نوع الحركة",donation:"تبرع وصل",expense:"مبلغ تم صرفه",amount:"المبلغ (جنيه مصري)",date:"التاريخ",recordMonth:"الشهر",donor:"اسم المتبرع (خاص)",privatePlaceholder:"اسم خاص اختياري",publicName:"الاسم الظاهر للناس",anonymous:"بدون اسم",payee:"تم الدفع إلى / مقدم الخدمة",providerPlaceholder:"مزود الاستضافة",description:"سبب الحركة",descriptionPlaceholder:"تفاصيل بسيطة عن التبرع أو المصروف",publish:"إظهار اسم المتبرع للعامة (بموافقته فقط)",add:"إضافة الحركة",clear:"مسح الخانات",records:"إدارة السجلات المحفوظة",recordsDescription:"يمكنك حذف السجلات التجريبية هنا. النسخة النهائية على الإنترنت ستحتاج إلى دخول آمن للمسؤولين وسجل للتعديلات.",reset:"إعادة بيانات النموذج التجريبي",noRecords:"لا توجد سجلات بعد.",receipt:"لا يوجد إيصال مرفق",delete:"حذف",confirmDelete:"هل تريد حذف هذا السجل المحلي؟",confirmReset:"هل تريد حذف كل السجلات والإعدادات التجريبية وإعادتها كما كانت؟",saved:"تم حفظ إعدادات الشهر في هذا المتصفح.",invalid:"أدخل مبلغًا أكبر من صفر وتاريخًا وسببًا للحركة.",donorPrivate:"اسم المتبرع الخاص",public:"الاسم الظاهر للناس",payeeLabel:"تم الدفع إلى / مقدم الخدمة",typeLabel:"النوع",exportCsv:"تنزيل السجلات العامة (CSV)",exportBackup:"تنزيل نسخة احتياطية خاصة (JSON)",anonymousFallback:"مجهول",monthNames:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]}
-};
-function tr(key){return t[lang][key] ?? t.en[key] ?? key}
-let serverStatusState = "checking";
-let serverConnectedUsers = null;
-
-function refreshServerStatus(){
- const el=$("serverStatus");
- if(!el)return;
- const labels=lang==="ar"
-  ? {checking:"حالة خادم TalkU: جارٍ الفحص...",online:n=>`خادم TalkU متاح · ${n} متصل`,down:"خادم TalkU غير متاح"}
-  : {checking:"TalkU API: checking...",online:n=>`TalkU API: online · ${n} connected`,down:"TalkU API: unavailable"};
-
- const show=()=>{
-  if(serverStatusState==="ok"){
-   el.className="pill status-ok";
-   el.textContent=labels.online(serverConnectedUsers);
-  }else if(serverStatusState==="unavailable"){
-   el.className="pill status-down";
-   el.textContent=labels.down;
-  }else{
-   el.className="pill status-checking";
-   el.textContent=labels.checking;
-  }
- };
-
- serverStatusState="checking";
- show();
-
- fetch("/api/server-status",{cache:"no-store"})
-  .then(async response=>{
-   const data=await response.json();
-   if(!response.ok||data.status!=="ok"||
-      !Number.isInteger(data.connected_users)||data.connected_users<0){
-    throw new Error("TalkU API unavailable");
-   }
-   serverConnectedUsers=data.connected_users;
-   serverStatusState="ok";
-  })
-  .catch(()=>{
-   serverConnectedUsers=null;
-   serverStatusState="unavailable";
-  })
-  .finally(show);
-}
-function persist(){localStorage.setItem("talku-donation-prototype-v1",JSON.stringify(state))}
-function money(n){return new Intl.NumberFormat(lang==="ar"?"ar-EG":"en-EG",{style:"currency",currency:"EGP",maximumFractionDigits:2}).format(n)}
-function monthLabel(m){const [y,mo]=m.split("-").map(Number);return `${t[lang].monthNames[mo-1]} ${y}`}
-function monthRecords(m){return state.records.filter(r=>r.month===m)}
-function totals(m){const rs=monthRecords(m);return {donations:rs.filter(r=>r.type==="donation").reduce((s,r)=>s+r.amount,0),expenses:rs.filter(r=>r.type==="expense").reduce((s,r)=>s+r.amount,0)}}
-function setting(m){return state.settings[m]||{target:600,opening:0}}
-function closing(m){const s=setting(m),v=totals(m);return Number(s.opening||0)+v.donations-v.expenses}
-function publicName(r){if(r.type!=="donation")return r.payee||"—";return r.publishDonor?(r.publicName||tr("anonymousFallback")):tr("anonymousFallback")}
-function txHtml(r,admin=false){const label=r.type==="donation"?tr("donation"):tr("expense"),name=admin?(r.type==="donation"?`${tr("donorPrivate")}: ${r.donorName||"—"} · ${tr("public")}: ${publicName(r)}`:`${tr("payeeLabel")}: ${r.payee||"—"}`):publicName(r);return `<div class="transaction"><div class="tx-main"><strong>${esc(r.description||label)}</strong><div class="tx-meta">${esc(r.date)} · ${esc(name)}</div><div class="tx-meta">${esc(label)} · #${String(r.id).padStart(3,"0")}</div></div><div><div class="amount ${r.type==="donation"?"in":"out"}">${r.type==="donation"?"+":"−"}${money(r.amount)}</div>${admin?`<button class="danger" style="margin-top:8px;padding:6px 9px" data-delete="${r.id}">${tr("delete")}</button>`:""}</div></div>`}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function renderList(target,rs,admin=false){$(target).innerHTML=rs.length?rs.map(r=>txHtml(r,admin)).join(""):`<div class="empty">${tr("noRecords")}</div>`}
-function render(){
- const m=$("monthInput").value||"2026-10",s=setting(m),v=totals(m),bal=closing(m),pct=Number(s.target)>0?Math.round(v.donations/Number(s.target)*100):0;
- $("targetValue").textContent=money(Number(s.target)||0);$("donationsValue").textContent=money(v.donations);$("expensesValue").textContent=money(v.expenses);$("balanceValue").textContent=money(bal);$("balanceValue").className=bal>=0?"good":"";
- $("progressPct").textContent=pct+"%";$("progressBar").style.width=Math.min(100,pct)+"%";$("neededText").textContent=`${tr("needed")}: ${money(Math.max(0,(Number(s.target)||0)-v.donations))}`;$("openingValue").textContent=money(Number(s.opening)||0);$("netValue").textContent=money(v.donations-v.expenses);
- const sorted=monthRecords(m).slice().sort((a,b)=>b.date.localeCompare(a.date));renderList("latestList",sorted.slice(0,5));const f=$("ledgerFilter").value;renderList("ledgerList",state.records.filter(r=>f==="all"||r.type===f).slice().sort((a,b)=>b.date.localeCompare(a.date)));renderList("adminList",state.records.slice().sort((a,b)=>b.date.localeCompare(a.date)),true);
- const months=[...new Set([...Object.keys(state.settings),...state.records.map(r=>r.month)])].sort().reverse();
- $("historyList").innerHTML=months.map(mm=>{const tt=totals(mm),ss=setting(mm);return `<div class="panel" style="margin:10px 0;background:#fafcfc"><div class="row"><h3 style="margin:0">${esc(monthLabel(mm))}</h3><span class="pill">${esc(mm)}</span></div><div class="row" style="margin-top:12px"><span>${tr("opening")}</span><strong>${money(Number(ss.opening)||0)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("donations")}</span><strong class="good">${money(tt.donations)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("expenses")}</span><strong>${money(tt.expenses)}</strong></div><div class="row" style="margin-top:8px"><span>${tr("balance")}</span><strong>${money(closing(mm))}</strong></div></div>`}).join("")||`<div class="empty">${tr("noRecords")}</div>`;
- updateEntryType();
-}
-function setLanguage(next){lang=next;document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";$("langBtn").textContent=lang==="ar"?"English":"العربية";const map={appTitle:"title",subtitle:"subtitle",demoTag:"demoTag",tabOverview:"overview",tabLedger:"ledgerTab",tabHistory:"historyTab",tabAdmin:"admin",privacyNotice:"notice",targetLabel:"target",donationsLabel:"donations",expensesLabel:"expenses",balanceLabel:"balance",progressTitle:"progress",openingLabel:"opening",netLabel:"net",latestTitle:"latest",ledgerTitle:"ledgerTitle",ledgerDescription:"ledgerDescription",historyTitle:"historyTitle",historyDescription:"historyDescription",settingsTitle:"settings",monthLabel:"month",targetInputLabel:"targetInput",openingInputLabel:"openingInput",saveSettings:"saveSettings",addTitle:"addTitle",typeLabel:"type",amountInputLabel:"amount",dateLabel:"date",recordMonthLabel:"recordMonth",donorLabel:"donor",publicNameLabel:"publicName",payeeLabel:"payee",descriptionLabel:"description",publishLabel:"publish",saveEntry:"add",clearForm:"clear",recordsTitle:"records",recordsDescription:"recordsDescription",resetDemo:"reset",exportCsv:"exportCsv",exportBackup:"exportBackup",footerText:"footer"};
- Object.entries(map).forEach(([id,k])=>{if($(id))$(id).textContent=tr(k)});$("ledgerFilter").options[0].text=tr("filterAll");$("ledgerFilter").options[1].text=tr("filterDonations");$("ledgerFilter").options[2].text=tr("filterExpenses");$("entryType").options[0].text=tr("donation");$("entryType").options[1].text=tr("expense");$("donorName").placeholder=tr("privatePlaceholder");$("publicName").placeholder=tr("anonymous");$("payeeName").placeholder=tr("providerPlaceholder");$("entryDescription").placeholder=tr("descriptionPlaceholder");document.querySelectorAll("[data-tab]").forEach(b=>{b.textContent=tr(({overview:"overview",ledger:"ledgerTab",history:"historyTab",admin:"admin"})[b.dataset.tab])});render();setActiveTab(activeTab);refreshServerStatus()}
-function setActiveTab(tab){activeTab=tab;document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));["overview","ledger","history","admin"].forEach(id=>$(id).classList.toggle("hidden",id!==tab))}
-function updateEntryType(){const donation=$("entryType").value==="donation";$("donorPrivateField").classList.toggle("hidden",!donation);$("publicNameField").classList.toggle("hidden",!donation);$("publishLabel").parentElement.parentElement.classList.toggle("hidden",!donation);$("expensePayeeField").classList.toggle("hidden",donation);$("publishDonor").disabled=!donation;if(!donation)$("publishDonor").checked=false}
-$("langBtn").addEventListener("click",()=>setLanguage(lang==="en"?"ar":"en"));document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>setActiveTab(b.dataset.tab)));
-$("entryType").addEventListener("change",updateEntryType);$("monthInput").addEventListener("change",()=>{const s=setting($("monthInput").value);$("targetInput").value=s.target??600;$("openingInput").value=s.opening??0;render()});$("ledgerFilter").addEventListener("change",render);
-$("saveSettings").addEventListener("click",()=>{const m=$("monthInput").value;if(!m)return;state.settings[m]={target:Math.max(0,Number($("targetInput").value)||0),opening:Number($("openingInput").value)||0};persist();render();alert(tr("saved"))});
-$("entryForm").addEventListener("submit",e=>{e.preventDefault();const amount=Number($("entryAmount").value),date=$("entryDate").value,month=$("recordMonth").value,description=$("entryDescription").value.trim(),type=$("entryType").value;if(!Number.isFinite(amount)||amount<=0||!date||!month||!description){alert(tr("invalid"));return}const donorName=$("donorName").value.trim(),pub=$("publishDonor").checked;state.records.push({id:Math.max(0,...state.records.map(r=>r.id))+1,month,date,type,amount:Math.round(amount*100)/100,donorName,publicName:pub?(($("publicName").value.trim()||donorName)||tr("anonymousFallback")):tr("anonymousFallback"),publishDonor:pub,payee:type==="expense"?$("payeeName").value.trim():"",description});if(!state.settings[month])state.settings[month]={target:600,opening:0};persist();$("entryForm").reset();$("entryDate").value=new Date().toISOString().slice(0,10);$("recordMonth").value=$("monthInput").value;$("entryType").value="donation";updateEntryType();render();setActiveTab("ledger")});
-$("clearForm").addEventListener("click",()=>{$("entryForm").reset();$("entryDate").value=new Date().toISOString().slice(0,10);$("recordMonth").value=$("monthInput").value;updateEntryType()});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-delete]");if(!b)return;if(confirm(tr("confirmDelete"))){state.records=state.records.filter(r=>r.id!==Number(b.dataset.delete));persist();render()}});
-$("resetDemo").addEventListener("click",()=>{if(confirm(tr("confirmReset"))){state=defaultState();persist();$("monthInput").value="2026-10";$("targetInput").value=600;$("openingInput").value=100;render()}});
-function download(name,content,type){const a=document.createElement("a"),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-$("exportCsv").addEventListener("click",()=>{const rows=[["date","month","type","amount_EGP","public_name","description"],...state.records.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,r.month,r.type,r.amount,publicName(r),r.description])];download("talku-public-ledger.csv","\ufeff"+rows.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),"text/csv;charset=utf-8")});
-$("exportBackup").addEventListener("click",()=>download("talku-local-backup.json",JSON.stringify(state,null,2),"application/json"));
-$("monthInput").value="2026-10";$("targetInput").value=600;$("openingInput").value=100;$("recordMonth").value="2026-10";$("entryDate").value="2026-10-14";setLanguage("en");render();setInterval(refreshServerStatus,30000);
-})();
-</script>
+<script src="/app.js" defer></script>
 </body>
 </html>

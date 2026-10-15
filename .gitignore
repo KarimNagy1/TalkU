@@ -57,3 +57,9 @@ TODO.md
 # build output
 dist
 targetARYic8/
+
+# Local Wrangler state
+.wrangler/
+
+# Local production database backup (sensitive)
+/talku-funds-db-backup.sql
