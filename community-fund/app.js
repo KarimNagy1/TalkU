@@ -9,6 +9,7 @@
     login: "/api/auth/login",
     session: "/api/auth/me",
     logout: "/api/auth/logout",
+    accounts: "/api/auth/accounts",
     serverStatus: "/api/server-status"
   };
 
@@ -21,7 +22,7 @@
       overview: "Overview",
       ledgerTab: "Public records",
       historyTab: "Monthly history",
-      admin: "Manage records",
+      admin: "Admin Dashboard",
       notice: "Public records are available without signing in. Private donor details are restricted to authorized administrators.",
       target: "Monthly donation goal",
       donations: "Donations received",
@@ -77,6 +78,22 @@
       clear: "Clear form",
       records: "Manage fund records",
       recordsDescription: "Only authorized administrators can manage records. Changes are processed by the server and recorded in the audit log.",
+      adminAccountsTitle: "Admin accounts",
+      adminAccountsDescription: "Only the owner can create and view administrator accounts.",
+      newAdminUsername: "New username",
+      newAdminPassword: "Temporary password (12–256 characters)",
+      createAdminAccount: "Create administrator",
+      accountCreated: "Administrator account created.",
+      accountCreateError: "Could not create the administrator account.",
+      accountLoadError: "Could not load administrator accounts.",
+      noAdminAccounts: "No administrator accounts found.",
+      accountRole: "Role",
+      accountStatus: "Status",
+      accountCreatedAt: "Created",
+      active: "Active",
+      inactive: "Inactive",
+      ownerRole: "Owner",
+      adminRole: "Administrator",
       noRecords: "No records yet.",
       delete: "Delete",
       edit: "Edit",
@@ -117,7 +134,7 @@
       overview: "الرئيسية",
       ledgerTab: "السجلات العامة",
       historyTab: "السجل الشهري",
-      admin: "إدارة السجلات",
+      admin: "لوحة تحكم المسؤول",
       notice: "السجلات العامة متاحة دون تسجيل الدخول. بيانات المتبرعين الخاصة متاحة للمسؤولين المصرح لهم فقط.",
       target: "الهدف الشهري للتبرعات",
       donations: "التبرعات التي وصلت",
@@ -173,6 +190,22 @@
       clear: "مسح الخانات",
       records: "إدارة سجلات الصندوق",
       recordsDescription: "يمكن للمسؤولين المصرح لهم فقط إدارة السجلات. تُعالج التغييرات على الخادم وتُسجّل في سجل التدقيق.",
+      adminAccountsTitle: "حسابات المسؤولين",
+      adminAccountsDescription: "يمكن للمالك فقط إنشاء حسابات المسؤولين وعرضها.",
+      newAdminUsername: "اسم المستخدم الجديد",
+      newAdminPassword: "كلمة مرور مؤقتة (من 12 إلى 256 حرفًا)",
+      createAdminAccount: "إنشاء حساب مسؤول",
+      accountCreated: "تم إنشاء حساب المسؤول.",
+      accountCreateError: "تعذر إنشاء حساب المسؤول.",
+      accountLoadError: "تعذر تحميل حسابات المسؤولين.",
+      noAdminAccounts: "لم يتم العثور على حسابات مسؤولين.",
+      accountRole: "الصلاحية",
+      accountStatus: "الحالة",
+      accountCreatedAt: "تاريخ الإنشاء",
+      active: "نشط",
+      inactive: "غير نشط",
+      ownerRole: "المالك",
+      adminRole: "مسؤول",
       noRecords: "لا توجد سجلات حتى الآن.",
       delete: "حذف",
       edit: "تعديل",
@@ -217,6 +250,7 @@
     settings: {},
     admin: null,
     adminEntries: [],
+    adminAccounts: [],
     server: "checking",
     connectedUsers: null,
     subscription: null
@@ -452,6 +486,88 @@
       return;
     }
     renderList("adminList", sortedNewest(state.adminEntries), true);
+    renderAdminAccounts();
+  }
+
+  function renderAdminAccounts() {
+    const list = $("adminAccountsList");
+    if (!list) return;
+
+    if (!state.admin || state.admin.role !== "owner") {
+      list.innerHTML = "";
+      return;
+    }
+
+    if (!state.adminAccounts.length) {
+      list.innerHTML = `<div class="empty">${escapeHtml(tr("noAdminAccounts"))}</div>`;
+      return;
+    }
+
+    list.innerHTML = state.adminAccounts.map(account => {
+      const role = account.role === "owner" ? tr("ownerRole") : tr("adminRole");
+      const status = Number(account.is_active) === 1 ? tr("active") : tr("inactive");
+      return `<div class="row" style="padding:10px 0;border-bottom:1px solid var(--border,#ddd);gap:12px">
+        <div>
+          <strong>${escapeHtml(account.username)}</strong>
+          <div class="muted">${escapeHtml(tr("accountRole"))}: ${escapeHtml(role)} · ${escapeHtml(tr("accountStatus"))}: ${escapeHtml(status)}</div>
+          <div class="muted">${escapeHtml(tr("accountCreatedAt"))}: ${escapeHtml(account.created_at || "—")}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function loadAdminAccounts({ clearMessage = true } = {}) {
+    if (!state.admin || state.admin.role !== "owner") {
+      state.adminAccounts = [];
+      renderAdminAccounts();
+      return;
+    }
+
+    try {
+      const result = await apiRequest(API.accounts);
+      if (!Array.isArray(result.accounts)) throw new Error("Unexpected accounts response");
+      state.adminAccounts = result.accounts;
+      if (clearMessage) {
+        $("adminAccountsMessage").textContent = "";
+        $("adminAccountsMessage").className = "muted";
+      }
+      renderAdminAccounts();
+    } catch (error) {
+      console.error("Loading administrator accounts failed:", error);
+      $("adminAccountsMessage").textContent = tr("accountLoadError");
+      $("adminAccountsMessage").className = "error";
+    }
+  }
+
+  async function createAdminAccount(event) {
+    event.preventDefault();
+
+    if (!state.admin || state.admin.role !== "owner") return;
+
+    const username = $("newAdminUsername").value.trim();
+    const password = $("newAdminPassword").value;
+
+    $("adminAccountsMessage").textContent = "";
+    $("adminAccountsMessage").className = "muted";
+
+    try {
+      await apiRequest(API.accounts, {
+        method: "POST",
+        body: JSON.stringify({ username, password })
+      });
+
+      $("adminAccountForm").reset();
+      $("adminAccountsMessage").textContent = tr("accountCreated");
+      $("adminAccountsMessage").className = "good";
+      await loadAdminAccounts({ clearMessage: false });
+    } catch (error) {
+      console.error("Creating administrator account failed:", error);
+      $("adminAccountsMessage").textContent =
+        error.status === 409 || error.status === 400
+          ? error.message
+          : tr("accountCreateError");
+      $("adminAccountsMessage").className = "error";
+    }
   }
 
   function render() {
@@ -472,6 +588,10 @@
     $("adminLoginToggle").classList.toggle("hidden", authenticated);
     $("adminLogout").classList.toggle("hidden", !authenticated);
     $("tabAdmin").classList.toggle("hidden", !authenticated);
+    $("adminAccountsPanel").classList.toggle(
+      "hidden",
+      !authenticated || state.admin.role !== "owner"
+    );
 
     if (!authenticated && state.activeTab === "admin") showTab("overview");
     if (authenticated) $("adminLoginPanel").classList.add("hidden");
@@ -525,6 +645,11 @@
       descriptionLabel: "description", publishLabel: "publish",
       saveEntry: state.editingId ? "update" : "add", clearForm: "clear",
       recordsTitle: "records", recordsDescription: "recordsDescription",
+      adminAccountsTitle: "adminAccountsTitle",
+      adminAccountsDescription: "adminAccountsDescription",
+      newAdminUsernameLabel: "newAdminUsername",
+      newAdminPasswordLabel: "newAdminPassword",
+      createAdminAccountButton: "createAdminAccount",
       exportCsv: "exportCsv", adminLoginToggle: "login",
       adminLoginTitle: "loginTitle", adminLoginDescription: "loginDescription",
       adminUsernameLabel: "username", adminPasswordLabel: "password",
@@ -598,6 +723,7 @@
   function clearAdminState() {
     state.admin = null;
     state.adminEntries = [];
+    state.adminAccounts = [];
     state.editingId = null;
     $("entryForm").reset();
     updateEntryType();
@@ -610,6 +736,7 @@
       if (result.authenticated && result.admin) {
         state.admin = result.admin;
         await loadAdminEntries();
+        if (state.admin.role === "owner") await loadAdminAccounts();
       } else {
         clearAdminState();
       }
@@ -634,6 +761,7 @@
 
       state.admin = { username: result.username, role: result.role };
       await loadAdminEntries();
+      if (state.admin.role === "owner") await loadAdminAccounts();
       setMessage(tr("loginSuccess"));
       $("adminPassword").value = "";
       $("adminLoginPanel").classList.add("hidden");
@@ -942,30 +1070,46 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+
   async function refreshServerStatus() {
     const el = $("serverStatus");
     if (!el) return;
 
-    state.server = "checking";
-    el.className = "pill status-checking";
-    el.textContent = tr("serverChecking");
+    if (state.server !== "ok" && state.server !== "unavailable") {
+      state.server = "checking";
+      el.className = "pill status-checking";
+      el.textContent = tr("serverChecking");
+    }
 
     try {
       const data = await apiRequest(API.serverStatus);
-      if (data.status !== "ok" || !Number.isInteger(data.connected_users) || data.connected_users < 0) {
+      if (
+        data.status !== "ok" ||
+        !Number.isInteger(data.connected_users) ||
+        data.connected_users < 0
+      ) {
         throw new Error("Invalid status response");
       }
+
       state.server = "ok";
       state.connectedUsers = data.connected_users;
+      state.serverFailedChecks = 0;
       el.className = "pill status-ok";
       el.textContent = tr("serverOnline")(state.connectedUsers);
     } catch {
+      state.serverFailedChecks = (state.serverFailedChecks || 0) + 1;
+
+      if (state.server === "ok" && state.serverFailedChecks < 2) {
+        return;
+      }
+
       state.server = "unavailable";
       state.connectedUsers = null;
       el.className = "pill status-down";
       el.textContent = tr("serverOffline");
     }
   }
+
 
   function bindEvents() {
     document.querySelectorAll("[data-tab]").forEach(button => {
@@ -992,6 +1136,7 @@
     });
 
     $("adminLogout").addEventListener("click", logout);
+    $("adminAccountForm").addEventListener("submit", createAdminAccount);
     $("entryForm").addEventListener("submit", saveEntry);
     $("clearForm").addEventListener("click", clearEntryForm);
     $("saveSettings").addEventListener("click", saveSettings);

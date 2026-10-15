@@ -16,15 +16,17 @@
 <div class="wrap">
   <header class="header">
     <div class="brand"><div class="logo">♥</div><div><h1 id="appTitle" style="margin:0;font-size:1.3rem">TalkU Community Fund</h1><div id="subtitle" class="muted">Donations and spending</div></div></div>
-    <div class="row"><span class="pill status-checking" id="serverStatus" role="status" aria-live="polite">TalkU Server: checking...</span><button id="adminLoginToggle" class="secondary" type="button">Admin login</button><button id="langBtn" class="secondary" type="button">العربية</button></div>
+    <div class="row"><span class="pill status-checking" id="serverStatus" role="status" aria-live="polite">TalkU Server: checking...</span><button id="adminLoginToggle" class="secondary" type="button">Admin login</button><button type="button" class="secondary hidden" id="adminLogout">Sign out</button><button id="langBtn" class="secondary" type="button">العربية</button></div>
   </header>
   <nav class="toolbar" aria-label="Main navigation">
     <button class="active" data-tab="overview" id="tabOverview">Overview</button>
     <button data-tab="ledger" id="tabLedger">Public records</button>
     <button data-tab="history" id="tabHistory">Monthly history</button>
-    <button data-tab="admin" id="tabAdmin">Manage records</button>
+    <button data-tab="admin" id="tabAdmin">Admin Dashboard</button>
   </nav>
-  <div class="note" id="privacyNotice">Public records are available without signing in. Private donor details are restricted to authorized administrators. This site is still being tested and is not yet ready for public financial use.</div>
+
+  <div class="note" id="privacyNotice">Public records are available without signing in. Private donor details are restricted to authorized administrators.</div>
+
 
   <section id="adminLoginPanel" class="panel hidden" aria-labelledby="adminLoginTitle">
     <h2 id="adminLoginTitle">Administrator login</h2>
@@ -44,7 +46,6 @@
       <div class="actions">
         <button type="submit" id="adminLoginSubmit">Sign in</button>
         <button type="button" class="secondary" id="adminLoginCancel">Cancel</button>
-        <button type="button" class="secondary hidden" id="adminLogout">Sign out</button>
       </div>
     </form>
   </section>
@@ -134,6 +135,27 @@
         </div>
         <div class="actions"><button type="submit" id="saveEntry">Add transaction</button><button type="button" class="secondary" id="clearForm">Clear form</button></div>
       </form>
+    </div>
+    <div class="panel hidden" id="adminAccountsPanel">
+      <h2 id="adminAccountsTitle">Admin accounts</h2>
+      <p class="muted" id="adminAccountsDescription">Only the owner can create and view administrator accounts.</p>
+      <form id="adminAccountForm">
+        <div class="formgrid">
+          <div class="field">
+            <label id="newAdminUsernameLabel" for="newAdminUsername">New username</label>
+            <input id="newAdminUsername" name="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label id="newAdminPasswordLabel" for="newAdminPassword">Temporary password (12–256 characters)</label>
+            <input id="newAdminPassword" name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" id="createAdminAccountButton">Create administrator</button>
+        </div>
+      </form>
+      <p id="adminAccountsMessage" class="muted" role="status" aria-live="polite"></p>
+      <div id="adminAccountsList"></div>
     </div>
     <div class="panel">
       <h2 id="recordsTitle">Manage fund records</h2>
