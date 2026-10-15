@@ -77,7 +77,7 @@ Before launch:
 6. Deploy only after the database and rollback plans are ready.
 7. Verify public data privacy, administrator access, ledger operations,
    renewal settings, and TalkU server status on the deployed website.
-8. Remove the testing warning only after production verification succeeds.
+8. Confirm all production readiness checks pass before announcing the website as ready for public use.
 
 ## Security notes
 

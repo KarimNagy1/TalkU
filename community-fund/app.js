@@ -18,12 +18,11 @@
     en: {
       title: "TalkU Community Fund",
       subtitle: "Donations and spending",
-      demoTag: "TESTING — NOT READY",
       overview: "Overview",
       ledgerTab: "Public records",
       historyTab: "Monthly history",
       admin: "Manage records",
-      notice: "Public records are available without signing in. Private donor details are restricted to authorized administrators. This site is still being tested and is not yet ready for public financial use.",
+      notice: "Public records are available without signing in. Private donor details are restricted to authorized administrators.",
       target: "Monthly donation goal",
       donations: "Donations received",
       expenses: "Expenses recorded",
@@ -109,18 +108,17 @@
       serverChecking: "TalkU Server: checking...",
       serverOnline: n => `TalkU Server: online · ${n} connected`,
       serverOffline: "TalkU Server: unavailable",
-      footer: "TalkU Community Fund · Testing only · No payments are processed.",
+      footer: "TalkU Community Fund · No payments are processed on this site.",
       monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     },
     ar: {
       title: "صندوق مجتمع TalkU",
       subtitle: "التبرعات والمصروفات",
-      demoTag: "قيد الاختبار — غير جاهز",
       overview: "الرئيسية",
       ledgerTab: "السجلات العامة",
       historyTab: "السجل الشهري",
       admin: "إدارة السجلات",
-      notice: "السجلات العامة متاحة دون تسجيل الدخول. بيانات المتبرعين الخاصة متاحة للمسؤولين المصرح لهم فقط. لا يزال الموقع قيد الاختبار وغير جاهز للاستخدام المالي العام.",
+      notice: "السجلات العامة متاحة دون تسجيل الدخول. بيانات المتبرعين الخاصة متاحة للمسؤولين المصرح لهم فقط.",
       target: "الهدف الشهري للتبرعات",
       donations: "التبرعات التي وصلت",
       expenses: "المصروفات المسجلة",
@@ -206,7 +204,7 @@
       serverChecking: "حالة خادم TalkU: جارٍ الفحص...",
       serverOnline: n => `خادم TalkU متاح · ${n} متصل`,
       serverOffline: "خادم TalkU غير متاح",
-      footer: "صندوق مجتمع TalkU · قيد الاختبار · لا تتم معالجة أي مدفوعات.",
+      footer: "صندوق مجتمع TalkU · لا تتم معالجة أي مدفوعات على هذا الموقع.",
       monthNames: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
     }
   };
@@ -504,7 +502,7 @@
     $("langBtn").textContent = language === "ar" ? "English" : "العربية";
 
     const map = {
-      appTitle: "title", subtitle: "subtitle", demoTag: "demoTag",
+      appTitle: "title", subtitle: "subtitle",
       tabOverview: "overview", tabLedger: "ledgerTab", tabHistory: "historyTab",
       tabAdmin: "admin", privacyNotice: "notice", targetLabel: "target",
       donationsLabel: "donations", expensesLabel: "expenses", balanceLabel: "balance",
