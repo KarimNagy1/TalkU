@@ -1,6 +1,6 @@
 const SESSION_COOKIE = "__Host-talku_fund_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
-const PASSWORD_ITERATIONS = 600000;
+const PASSWORD_ITERATIONS = 100000;
 
 function json(data, status = 200, headers = {}) {
   return Response.json(data, {
