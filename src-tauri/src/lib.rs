@@ -497,7 +497,10 @@ fn set_tray_icon(app: tauri::AppHandle, connected: bool) -> Result<(), String> {
 struct ConnectedUsersResponse {
     connected_users: i32,
 }
-
+#[derive(serde::Deserialize)]
+struct CommunityFundStatusResponse {
+    status: String,
+}
 #[tauri::command]
 async fn get_connected_users_count() -> Result<i32, String> {
     let url = format!("{}connected_users/", API_URL);
@@ -511,6 +514,34 @@ async fn get_connected_users_count() -> Result<i32, String> {
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
     Ok(body.connected_users)
+}
+#[tauri::command]
+async fn get_community_fund_server_status() -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(4))
+        .build()
+        .map_err(|_| "Could not initialize status check".to_string())?;
+
+    let response = client
+        .get("https://talku-funds.pages.dev/api/server-status")
+        .send()
+        .await
+        .map_err(|_| "Status endpoint could not be reached".to_string())?;
+
+    if !response.status().is_success() {
+        return Ok("unavailable".to_string());
+    }
+
+    let body = response
+        .json::<CommunityFundStatusResponse>()
+        .await
+        .map_err(|_| "Invalid status response".to_string())?;
+
+    if body.status == "ok" {
+        Ok("online".to_string())
+    } else {
+        Ok("unavailable".to_string())
+    }
 }
 
 /// Registry value name under which the app registers itself for autostart.
@@ -843,6 +874,7 @@ pub fn run() {
         )) as SharedSettings)
         .invoke_handler(tauri::generate_handler![
             get_connected_users_count,
+            get_community_fund_server_status,
             get_vpn_status,
             check_config_and_connect,
             disconnect_vpn,
